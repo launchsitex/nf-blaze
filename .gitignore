@@ -1,0 +1,19 @@
+node_modules
+dist
+out
+release
+*.log
+.DS_Store
+Thumbs.db
+.env
+.env.*
+templates/*/node_modules
+templates/*/dist
+*.tsbuildinfo
+
+# Bundled portable Node runtime (~98MB) — downloaded at release time, not tracked
+resources/runtime/*
+!resources/runtime/README.md
+
+# מפתח הרישוי הפרטי — לעולם לא בגיט ולא בהתקנה. גבה אותו בכספת!
+secrets/

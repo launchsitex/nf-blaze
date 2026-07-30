@@ -1,0 +1,141 @@
+{
+  "name": "nf-blaze",
+  "version": "1.45.0",
+  "description": "NF-Blaze - Local AI builder for websites, systems and CRM",
+  "main": "./out/main/index.js",
+  "author": "NF-Blaze",
+  "license": "UNLICENSED",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "prebuild": "node scripts/embed-prompt.cjs",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.node.json --composite false && tsc --noEmit -p tsconfig.web.json --composite false",
+    "test": "npm run test:core && npm run test:agent-tools && npm run test:agent-index && npm run test:providers",
+    "test:core": "vitest run",
+    "test:agent-tools": "vitest run --config agent/tools/vitest.config.ts",
+    "test:agent-index": "vitest run --config agent/index/vitest.config.ts",
+    "test:providers": "vitest run --config providers/vitest.config.ts",
+    "test:watch": "vitest",
+    "test:sandbox": "vitest run --config sandbox/vitest.config.ts",
+    "typecheck:sandbox": "tsc --noEmit -p sandbox/tsconfig.json",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "sandbox:smoke": "npx --yes tsx sandbox/smoke.ts",
+    "license:keygen": "node scripts/license.cjs keygen",
+    "license:issue": "node scripts/license.cjs issue",
+    "license:verify": "node scripts/license.cjs verify",
+    "dist": "npm run build && electron-builder --win --publish never",
+    "dist:dir": "npm run build && electron-builder --win --dir",
+    "dist:publish": "npm run build && electron-builder --win --publish always",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.57.0",
+    "@google/generative-ai": "^0.24.1",
+    "@monaco-editor/react": "^4.7.0",
+    "@octokit/rest": "^22.0.1",
+    "dompurify": "^3.4.12",
+    "e2b": "^2.35.3",
+    "electron-updater": "^6.8.9",
+    "lucide-react": "^0.525.0",
+    "marked": "^18.0.7",
+    "monaco-editor": "^0.56.0",
+    "openai": "^5.10.0",
+    "playwright": "^1.54.2",
+    "simple-git": "^3.36.0",
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/dompurify": "^3.0.5",
+    "@types/marked": "^5.0.2",
+    "@types/node": "^22.16.0",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "@types/uuid": "^10.0.0",
+    "@vitejs/plugin-react": "^4.7.0",
+    "electron": "^37.2.0",
+    "electron-builder": "^26.0.12",
+    "electron-vite": "^4.0.0",
+    "eslint": "^10.8.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.3",
+    "globals": "^16.5.0",
+    "prettier": "^3.9.6",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.65.0",
+    "vite": "^7.0.4",
+    "vitest": "^3.2.4"
+  },
+  "build": {
+    "appId": "com.nfblaze.app",
+    "productName": "NF-Blaze",
+    "afterPack": "scripts/afterPack.cjs",
+    "directories": {
+      "output": "release"
+    },
+    "publish": {
+      "provider": "generic",
+      "url": "https://updates.nf-digital.net/nf-blaze"
+    },
+    "files": [
+      "out/**/*",
+      "package.json",
+      "packages/vite-plugin-nf-source/src/**"
+    ],
+    "extraResources": [
+      {
+        "from": "templates",
+        "to": "templates",
+        "filter": [
+          "**/*",
+          "!**/node_modules/**",
+          "!**/dist/**"
+        ]
+      },
+      {
+        "from": "agent/workers",
+        "to": "agent-workers"
+      },
+      {
+        "from": "resources/runtime",
+        "to": "runtime",
+        "filter": [
+          "**/*",
+          "node_modules/**/*"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "NF-Blaze-Setup-${version}.${ext}",
+      "icon": "resources/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "license": "build/license_he.txt",
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "NF-Blaze",
+      "installerLanguages": [
+        "en_US"
+      ],
+      "language": "1033",
+      "displayLanguageSelector": false
+    }
+  }
+}
