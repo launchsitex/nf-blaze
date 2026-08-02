@@ -1,0 +1,21 @@
+{
+  "model": "gemini-3.1-pro-preview",
+  "reports": [
+    {
+      "id": "plan-before-build",
+      "status": "pass",
+      "durationMs": 40049,
+      "iterations": 9,
+      "inputTokens": 51316,
+      "outputTokens": 1862,
+      "cacheReadTokens": 3992,
+      "stopReason": "completed",
+      "checks": [
+        {
+          "name": "לא נכתבו קבצים",
+          "status": "pass"
+        }
+      ]
+    }
+  ]
+}

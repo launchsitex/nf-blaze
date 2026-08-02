@@ -1,6 +1,6 @@
 {
   "name": "nf-blaze",
-  "version": "1.45.0",
+  "version": "1.66.2",
   "description": "NF-Blaze - Local AI builder for websites, systems and CRM",
   "main": "./out/main/index.js",
   "author": "NF-Blaze",
@@ -11,7 +11,9 @@
     "build": "electron-vite build",
     "preview": "electron-vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.node.json --composite false && tsc --noEmit -p tsconfig.web.json --composite false",
-    "test": "npm run test:core && npm run test:agent-tools && npm run test:agent-index && npm run test:providers",
+    "test": "npm run test:core && npm run test:agent-tools && npm run test:agent-index && npm run test:providers && npm run test:evals",
+    "test:evals": "vitest run --config evals/vitest.config.ts",
+    "eval": "npx --yes tsx --tsconfig tsconfig.node.json evals/runner.ts",
     "test:core": "vitest run",
     "test:agent-tools": "vitest run --config agent/tools/vitest.config.ts",
     "test:agent-index": "vitest run --config agent/index/vitest.config.ts",
@@ -30,7 +32,9 @@
     "dist": "npm run build && electron-builder --win --publish never",
     "dist:dir": "npm run build && electron-builder --win --dir",
     "dist:publish": "npm run build && electron-builder --win --publish always",
-    "postinstall": "electron-builder install-app-deps"
+    "postinstall": "electron-builder install-app-deps",
+    "release": "npm run dist && node scripts/make-release.cjs",
+    "release:optional": "npm run dist && node scripts/make-release.cjs --optional"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.57.0",
@@ -77,12 +81,20 @@
     "appId": "com.nfblaze.app",
     "productName": "NF-Blaze",
     "afterPack": "scripts/afterPack.cjs",
+    "electronFuses": {
+      "runAsNode": false,
+      "enableCookieEncryption": true,
+      "enableNodeOptionsEnvironmentVariable": false,
+      "enableNodeCliInspectArguments": false,
+      "enableEmbeddedAsarIntegrityValidation": true,
+      "onlyLoadAppFromAsar": true
+    },
     "directories": {
       "output": "release"
     },
     "publish": {
       "provider": "generic",
-      "url": "https://updates.nf-digital.net/nf-blaze"
+      "url": "https://nf-blaze.dev/download"
     },
     "files": [
       "out/**/*",
@@ -110,6 +122,10 @@
           "**/*",
           "node_modules/**/*"
         ]
+      },
+      {
+        "from": "resources/playwright",
+        "to": "playwright"
       }
     ],
     "win": {
@@ -126,15 +142,20 @@
     },
     "nsis": {
       "oneClick": false,
+      "warningsAsErrors": false,
+      "allowElevation": false,
       "license": "build/license_he.txt",
+      "include": "build/installer.nsh",
+      "installerSidebar": "build/installerSidebar.bmp",
+      "installerHeader": "build/installerHeader.bmp",
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "NF-Blaze",
       "installerLanguages": [
-        "en_US"
+        "he"
       ],
-      "language": "1033",
+      "language": "1037",
       "displayLanguageSelector": false
     }
   }

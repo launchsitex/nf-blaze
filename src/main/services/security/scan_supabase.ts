@@ -1,7 +1,7 @@
 /**
  * Probe Supabase tables with the anon key — block if readable without user auth.
  */
-import { getSecret, supabaseAnonSlot } from '../secrets'
+import { getSecret, supabaseAnonSlot, supabaseServiceSlot } from '../secrets'
 import { loadIntegrations } from '../integrations/store'
 import type { SecurityFinding } from './types'
 
@@ -33,44 +33,59 @@ function tableFixSql(table: string): string {
   ].join('\n')
 }
 
+/**
+ * מיפוי הטבלאות הציבוריות מסכמת ה-OpenAPI.
+ *
+ * ⚠️ `/rest/v1/` מוגבל ל-**service_role** בלבד. עם מפתח anon הוא מחזיר 401,
+ * ובגרסאות קודמות זה הוחזר כרשימה ריקה — כלומר הסריקה דיווחה «אין ממצאים»
+ * מבלי שבדקה ולו טבלה אחת. **חייבים להבחין** בין «אין טבלאות פתוחות» לבין
+ * «לא הצלחנו לבדוק».
+ */
 async function listPublicTables(
   projectUrl: string,
-  anonKey: string
-): Promise<string[]> {
+  anonKey: string,
+  serviceKey?: string
+): Promise<{ tables: string[]; enumerated: boolean; reason?: string }> {
   const base = projectUrl.replace(/\/+$/, '')
-  const res = await fetch(`${base}/rest/v1/`, {
-    headers: {
-      apikey: anonKey,
-      Authorization: `Bearer ${anonKey}`,
-      Accept: 'application/openapi+json'
-    }
-  })
-  if (!res.ok) {
-    // Fallback: try without Accept
-    const res2 = await fetch(`${base}/rest/v1/`, {
-      headers: {
-        apikey: anonKey,
-        Authorization: `Bearer ${anonKey}`
+
+  // service_role קודם — הוא היחיד שמורשה לקרוא את הסכמה
+  const attempts: Array<{ key: string; label: string }> = []
+  if (serviceKey) attempts.push({ key: serviceKey, label: 'service_role' })
+  attempts.push({ key: anonKey, label: 'anon' })
+
+  let lastReason = ''
+  for (const attempt of attempts) {
+    for (const accept of ['application/openapi+json', undefined]) {
+      let res: Response
+      try {
+        res = await fetch(`${base}/rest/v1/`, {
+          headers: {
+            apikey: attempt.key,
+            Authorization: `Bearer ${attempt.key}`,
+            ...(accept ? { Accept: accept } : {})
+          }
+        })
+      } catch (err) {
+        lastReason = err instanceof Error ? err.message : String(err)
+        continue
       }
-    })
-    if (!res2.ok) return []
-    const text = await res2.text()
-    try {
-      const json = JSON.parse(text) as OpenApiLike
-      return tablesFromOpenApi(json)
-    } catch {
-      return []
+      if (!res.ok) {
+        lastReason = `${attempt.label}: HTTP ${res.status}`
+        continue
+      }
+      try {
+        const json = JSON.parse(await res.text()) as OpenApiLike
+        return { tables: tablesFromOpenApi(json), enumerated: true }
+      } catch {
+        lastReason = `${attempt.label}: תשובה לא קריאה`
+      }
     }
   }
-  try {
-    const json = (await res.json()) as OpenApiLike
-    return tablesFromOpenApi(json)
-  } catch {
-    return []
-  }
+
+  return { tables: [], enumerated: false, reason: lastReason }
 }
 
-function tablesFromOpenApi(doc: OpenApiLike): string[] {
+export function tablesFromOpenApi(doc: OpenApiLike): string[] {
   const names = new Set<string>()
   if (doc.paths) {
     for (const p of Object.keys(doc.paths)) {
@@ -123,9 +138,7 @@ async function anonCanSelect(
   return { open: true, status: res.status, detail: 'SELECT הצליח עם מפתח anon' }
 }
 
-export async function scanSupabaseAnonAccess(
-  projectId: string
-): Promise<SecurityFinding[]> {
+export async function scanSupabaseAnonAccess(projectId: string): Promise<SecurityFinding[]> {
   const integ = loadIntegrations(projectId).supabase
   if (!integ.connected || !integ.projectUrl || !integ.hasAnonKey) {
     return []
@@ -134,25 +147,37 @@ export async function scanSupabaseAnonAccess(
   if (!anon) return []
 
   const findings: SecurityFinding[] = []
-  let tables: string[]
+  const service = getSecret(supabaseServiceSlot(projectId))
+
+  let listed: Awaited<ReturnType<typeof listPublicTables>>
   try {
-    tables = await listPublicTables(integ.projectUrl, anon)
-  } catch {
+    listed = await listPublicTables(integ.projectUrl, anon, service || undefined)
+  } catch (err) {
+    listed = {
+      tables: [],
+      enumerated: false,
+      reason: err instanceof Error ? err.message : String(err)
+    }
+  }
+
+  // כשל מיפוי אינו «נקי מממצאים» — זה היעדר בדיקה, וחייב להיאמר
+  if (!listed.enumerated) {
     return [
       {
         id: 'supabase-list-failed',
         kind: 'table_open_to_anon',
         severity: 'warn',
-        title: 'לא ניתן לסרוק טבלאות Supabase',
-        found: 'החיבור ל-Supabase הצליח בעבר, אך לא הצלחנו לקבל רשימת טבלאות לבדיקה.',
-        why: 'בלי הסריקה אי אפשר לוודא שאין טבלאות פתוחות לאורחים.',
-        fixHint: 'ודא שה-API פעיל ושיש לפחות טבלה אחת ב-public.'
+        title: 'סריקת טבלאות Supabase לא בוצעה',
+        found: `לא הצלחנו לקבל את רשימת הטבלאות${listed.reason ? ` (${listed.reason})` : ''}. קריאת הסכמה מוגבלת למפתח service_role.`,
+        why: 'בלי הרשימה לא נבדקה אף טבלה — אין לפרש את זה כאישור שאין טבלאות פתוחות לאורחים.',
+        fixHint:
+          'הוסף את מפתח service_role בחלון החיבורים (הוא נשמר מוצפן ולא נכנס לקוד הקליינט), ואז הרץ סריקה מחדש.'
       }
     ]
   }
 
   // Cap to avoid long deploys
-  const limited = tables.slice(0, 40)
+  const limited = listed.tables.slice(0, 40)
   for (const table of limited) {
     try {
       const probe = await anonCanSelect(integ.projectUrl, anon, table)

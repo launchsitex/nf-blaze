@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>איך משיגים מפתח API של OpenAI (ChatGPT) · מדריך NF-Blaze</title>
+    <meta
+      name="description"
+      content="מדריך מלא בעברית לפתיחת מפתח API אצל OpenAI: פתיחת חשבון, אימות טלפון, טעינת קרדיט, הגדרת תקרת הוצאה, וחיבור המפתח ל-NF-Blaze — כולל איך לא לחשוף אותו."
+    />
+    <meta name="theme-color" content="#07090d" />
+    <link rel="canonical" href="https://nf-blaze.dev/guides/chatgpt.html" />
+    <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../styles.css" />
+    <link rel="stylesheet" href="../a11y.css" />
+  </head>
+
+  <body>
+    <script src="../sprite.js"></script>
+
+    <a class="skip-link" href="#main-content">דלג לתוכן הראשי</a>
+
+    <nav class="nav" id="nav">
+      <div class="wrap">
+        <a class="brand" href="../" aria-label="NF-Blaze — לעמוד הבית">
+          <svg class="brand-mark" aria-hidden="true"><use href="#i-brand" /></svg>
+          NF-Blaze
+        </a>
+        <div class="nav-links">
+          <a href="../#capabilities">יכולות</a>
+          <a href="../#integrations">חיבורים</a>
+          <a href="./">מדריכים</a>
+          <a href="../#faq">שאלות</a>
+          <a href="../#download">הורדה</a>
+        </div>
+        <a class="btn btn-primary nav-cta" href="../#license">
+          <svg class="ic" aria-hidden="true"><use href="#i-key" /></svg>
+          בקשת רישיון
+        </a>
+        <button class="nav-toggle" id="navToggle" aria-label="תפריט" aria-expanded="false">
+          <svg class="ic" aria-hidden="true"><use href="#i-menu" /></svg>
+        </button>
+      </div>
+    </nav>
+
+    <div class="mobile-menu" id="mobileMenu">
+      <a href="../#capabilities">יכולות</a>
+      <a href="../#integrations">חיבורים</a>
+      <a href="../#security">אבטחה ופרטיות</a>
+      <div class="menu-group">מדריכים</div>
+      <a class="sub" href="chatgpt.html">
+        <svg class="ic" aria-hidden="true"><use href="#i-openai" /></svg>
+        ChatGPT · OpenAI
+      </a>
+      <a class="sub" href="gemini.html">
+        <svg class="ic ic-solid" aria-hidden="true"><use href="#i-gemini" /></svg>
+        Google Gemini
+      </a>
+      <a class="sub" href="claude.html">
+        <svg class="ic" aria-hidden="true"><use href="#i-claude" /></svg>
+        Anthropic Claude
+      </a>
+      <a class="btn btn-primary" href="../#license">
+        <svg class="ic" aria-hidden="true"><use href="#i-key" /></svg>
+        בקשת רישיון
+      </a>
+    </div>
+
+    <main id="main-content">
+      <section class="guide-hero">
+        <div class="aurora" aria-hidden="true"><div class="blob blob-1"></div></div>
+
+        <div class="wrap">
+          <div class="crumb">
+            <a href="../">ראשי</a>
+            <span class="sep">←</span>
+            <a href="./">מדריכים</a>
+            <span class="sep">←</span>
+            <span>ChatGPT · OpenAI</span>
+          </div>
+
+          <div class="guide-title">
+            <span class="brand-badge">
+              <svg class="ic" aria-hidden="true"><use href="#i-openai" /></svg>
+            </span>
+            <h1>חיבור OpenAI ל-NF-Blaze</h1>
+          </div>
+
+          <p class="lead">
+            מדריך צעד-אחר-צעד למי שלא עשה את זה מעולם. בסופו יהיה לך מפתח API פעיל, תקרת הוצאה
+            שמגינה עליך מהפתעות, והמערכת תעבוד.
+          </p>
+
+          <div class="meta-row">
+            <div class="meta">
+              <div class="k">כמה זמן</div>
+              <div class="v">‏5–10 דקות</div>
+            </div>
+            <div class="meta">
+              <div class="k">צריך כרטיס אשראי?</div>
+              <div class="v">כן — טעינה מראש מ-5$</div>
+            </div>
+            <div class="meta">
+              <div class="k">איך המפתח נראה</div>
+              <div class="v"><span class="mono">sk-proj-…</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section style="padding-top: 0">
+        <div class="wrap">
+          <div class="guide-body">
+            <div class="callout danger">
+              <svg class="ic" aria-hidden="true"><use href="#i-alert" /></svg>
+              <div>
+                <h2 class="callout-h">הדבר הראשון שחייבים להבין</h2>
+                <p>
+                  <strong>מנוי ChatGPT Plus אינו כולל גישת API.</strong> זו הטעות הנפוצה ביותר.
+                  ‏OpenAI מפעילה שני מוצרים נפרדים לחלוטין: הצ׳אט שאתה מכיר באתר, ושירות ה-API
+                  למפתחים. גם אם אתה משלם 20$ בחודש על Plus — הארנק של ה-API ריק, וצריך לטעון
+                  אותו בנפרד.
+                </p>
+                <p>
+                  בפועל זה אומר: אתה נכנס לאתר <strong>אחר</strong> (לא chatgpt.com), פותח שם
+                  חשבון, וטוען סכום קטן.
+                </p>
+              </div>
+            </div>
+
+            <h2>השגת המפתח — שלב אחר שלב</h2>
+
+            <div class="gstep">
+              <div class="n">1</div>
+              <h3>נכנסים לאתר המפתחים</h3>
+              <p>
+                גלוש אל
+                <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">
+                  platform.openai.com/api-keys</a
+                >. שים לב שזו כתובת אחרת מ-<span class="mono">chatgpt.com</span> — אותו חשבון
+                Google/אימייל יעבוד, אבל זה ממשק אחר לגמרי.
+              </p>
+              <p>
+                אם אין לך חשבון — הירשם. אפשר להתחבר עם Google, ואז לא צריך לזכור סיסמה נוספת.
+              </p>
+            </div>
+
+            <div class="gstep">
+              <div class="n">2</div>
+              <h3>אימות מספר טלפון</h3>
+              <p>
+                לפני יצירת <strong>המפתח הראשון</strong> (לא בפתיחת החשבון) OpenAI תבקש לאמת
+                מספר טלפון בהודעת SMS. זה חד-פעמי — למפתחות הבאים כבר לא יבקשו.
+              </p>
+              <ul>
+                <li>אותו מספר טלפון יכול לשמש לכל היותר <strong>3 חשבונות</strong>.</li>
+                <li>
+                  מספרים וירטואליים (VoIP) לרוב נדחים — השתמש במספר סלולרי אמיתי.
+                </li>
+              </ul>
+            </div>
+
+            <div class="gstep">
+              <div class="n">3</div>
+              <h3>טוענים קרדיט</h3>
+              <p>
+                שירות ה-API עובד ב<strong>תשלום מראש</strong>: קונים קרדיט, והשימוש יורד ממנו.
+                בלי קרדיט המפתח ייווצר אבל יחזיר שגיאה בכל פנייה.
+              </p>
+              <ul>
+                <li>המינימום הוא <strong>5$</strong> — התחל בזה, זה מספיק להרבה עבודה.</li>
+                <li>
+                  ⚠️ <strong>הקרדיט פג אחרי שנה</strong> מיום הרכישה ואינו ניתן להחזר. עוד סיבה
+                  לא לטעון סכום גדול בהתחלה.
+                </li>
+                <li>
+                  אם תראה אפשרות <span class="ui">auto-recharge</span> — זו טעינה אוטומטית
+                  כשהיתרה יורדת. נוחה, אבל <strong>השאר אותה כבויה בהתחלה</strong>: אם מפתח ידלוף,
+                  היא זו שתמשיך לחייב אותך שוב ושוב.
+                </li>
+              </ul>
+            </div>
+
+            <div class="gstep">
+              <div class="n">4</div>
+              <h3>יוצרים את המפתח</h3>
+              <p>
+                בתפריט הצד בחר <span class="ui">API keys</span>, ולחץ על הכפתור ליצירת מפתח חדש
+                (‏<span class="ui">Create new secret key</span>). תן לו שם שיזכיר לך למה הוא
+                משמש — למשל <span class="mono">NF-Blaze</span>.
+              </p>
+              <div class="callout warn">
+                <svg class="ic" aria-hidden="true"><use href="#i-eye-off" /></svg>
+                <div>
+                  <h3 class="callout-h">המפתח מוצג פעם אחת בלבד</h3>
+                  <p>
+                    ברגע שתסגור את החלון לא תוכל לראות אותו שוב — יישארו רק ארבע הספרות
+                    האחרונות. <strong>העתק אותו עכשיו והדבק ישירות ל-NF-Blaze</strong> (שלב 6).
+                    אם איבדת — פשוט מוחקים ויוצרים חדש, זה לא אסון.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div class="gstep">
+              <div class="n">5</div>
+              <h3>מגדירים תקרת הוצאה — אל תדלג על זה</h3>
+              <p>
+                זו ההגנה הכי חשובה שלך, וב-OpenAI היא הטובה מבין שלושת הספקים. גלוש אל
+                <a
+                  href="https://platform.openai.com/settings/organization/limits"
+                  target="_blank"
+                  rel="noopener"
+                  >‏Settings ← Limits</a
+                >
+                ותחת <span class="ui">Spend</span> לחץ <span class="ui">Edit spend limit</span>.
+              </p>
+              <div class="callout danger">
+                <svg class="ic" aria-hidden="true"><use href="#i-wallet" /></svg>
+                <div>
+                  <h3 class="callout-h">יש שני דברים שונים — אל תתבלבל</h3>
+                  <p>
+                    <strong>התראה (alert)</strong> רק שולחת לך מייל. החיוב <em>ממשיך</em>.
+                  </p>
+                  <p>
+                    <strong>תקרה קשיחה (hard limit)</strong> היא מתג נפרד שצריך להדליק — ורק הוא
+                    באמת עוצר את השירות כשמגיעים לסכום. <strong>הדלק את המתג הזה.</strong> קבע
+                    סכום שלא יכאב לך אם ייעלם, למשל 10$.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div class="gstep">
+              <div class="n">6</div>
+              <h3>מדביקים ב-NF-Blaze</h3>
+              <p>
+                פתח את NF-Blaze ← <span class="ui">הגדרות</span> ←
+                <span class="ui">מודלים ומפתחות</span> ← בחר <strong>OpenAI</strong> ← הדבק את
+                המפתח ← <span class="ui">שמור</span>. המערכת מאמתת אותו מיד מול OpenAI, כך שתדע
+                בו במקום אם משהו לא תקין.
+              </p>
+              <p>
+                המפתח נשמר <strong>רק על המחשב שלך</strong>, דרך מנגנון ההצפנה של מערכת ההפעלה.
+                הוא לא נשלח לשרת שלנו ולא נשמר בענן.
+              </p>
+            </div>
+
+            <div class="callout info">
+              <svg class="ic" aria-hidden="true"><use href="#i-key" /></svg>
+              <div>
+                <h3 class="callout-h">מלכודת קטנה: יש כמה סוגי מפתחות</h3>
+                <p>
+                  מפתח תקין לשימוש במודלים מתחיל ב-<span class="mono">sk-proj-</span>. אם המפתח
+                  שלך מתחיל ב-<span class="mono">sk-admin-</span> — זהו מפתח ניהול (חיוב
+                  ופרויקטים) <strong>שאינו יכול להפעיל מודלים</strong> ויחזיר שגיאה. צור מפתח
+                  רגיל מהמסך <span class="ui">API keys</span>.
+                </p>
+              </div>
+            </div>
+
+            <h2>לשמור על המפתח — למה זה קריטי</h2>
+
+            <p>
+              מפתח API הוא לא סיסמה. סיסמה גנובה נותנת גישה לחשבון; <strong>מפתח גנוב הוא
+              אמצעי תשלום</strong> — מי שמחזיק בו יכול לצרוך על חשבונך עד שתשים לב. הוא לא
+              מוגן בשום אימות דו-שלבי.
+            </p>
+
+            <div class="callout danger">
+              <svg class="ic" aria-hidden="true"><use href="#i-clock" /></svg>
+              <div>
+                <h3 class="callout-h">זה קורה מהר יותר ממה שנדמה</h3>
+                <p>
+                  ברשת רצים בוטים שסורקים ריפוזיטוריז ציבוריים ב-GitHub ומוצאים מפתחות שנחשפו
+                  <strong>תוך דקות</strong> מרגע ההעלאה. לפי דוח GitGuardian, מספר המפתחות של
+                  שירותי AI שנחשפו בקוד ציבורי <strong>זינק ב-81% בשנה</strong>. יש מקרים
+                  מתועדים של חשבונות שקיבלו חיוב של אלפי דולרים תוך ימים.
+                </p>
+              </div>
+            </div>
+
+            <div class="rules">
+              <div class="rule no">
+                <span class="mark">✕</span>
+                <div>
+                  <strong>לא לשלוח באף ערוץ</strong>
+                  <span>
+                    לא בוואטסאפ, לא במייל, לא בצילום מסך, ולא בצ׳אט תמיכה. גם לא לחבר «רק כדי
+                    שיבדוק».
+                  </span>
+                </div>
+              </div>
+
+              <div class="rule no">
+                <span class="mark">✕</span>
+                <div>
+                  <strong>לא להעלות לגיט</strong>
+                  <span>
+                    אף פעם לא בתוך קוד ולא בקובץ <span class="mono">.env</span> שנדחף לריפו.
+                    ‏NF-Blaze בכלל חוסמת מהסוכן גישה לקבצי סוד.
+                  </span>
+                </div>
+              </div>
+
+              <div class="rule no">
+                <span class="mark">✕</span>
+                <div>
+                  <strong>לא בקוד שרץ בדפדפן</strong>
+                  <span>
+                    כל מה שרץ אצל המשתמש גלוי לו. מפתח בקוד צד-לקוח = מפתח ציבורי.
+                  </span>
+                </div>
+              </div>
+
+              <div class="rule yes">
+                <span class="mark">✓</span>
+                <div>
+                  <strong>תקרה קשיחה תמיד דלוקה</strong>
+                  <span>
+                    גם אם הכל דלף — הנזק חסום בסכום שקבעת. זו ההגנה הכי אפקטיבית שיש.
+                  </span>
+                </div>
+              </div>
+
+              <div class="rule yes">
+                <span class="mark">✓</span>
+                <div>
+                  <strong>מפתח נפרד לכל שימוש</strong>
+                  <span>
+                    מפתח ל-NF-Blaze, מפתח לניסויים. אם אחד נחשף — מוחקים אותו בלי לשבור את השאר.
+                  </span>
+                </div>
+              </div>
+
+              <div class="rule yes">
+                <span class="mark">✓</span>
+                <div>
+                  <strong>הצצה מדי פעם בשימוש</strong>
+                  <span>
+                    בעמוד <span class="ui">Usage</span> רואים כמה נצרך. קפיצה חריגה = סימן
+                    אזהרה.
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <h2>חושד שהמפתח דלף? כך פועלים</h2>
+
+            <div class="gstep">
+              <div class="n">1</div>
+              <h3>מוחקים אותו מיד</h3>
+              <p>
+                היכנס ל-<a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">
+                  ‏API keys</a
+                >, אתר את המפתח לפי השם וארבע הספרות האחרונות, ומחק אותו. מרגע המחיקה הוא חסר
+                ערך. <strong>אל תתלבט ואל תחכה</strong> — מחיקה עולה לך דקה, והמפתח החדש נוצר
+                בשנייה.
+              </p>
+            </div>
+
+            <div class="gstep">
+              <div class="n">2</div>
+              <h3>יוצרים חדש ומעדכנים</h3>
+              <p>צור מפתח חדש והדבק אותו ב-NF-Blaze במקום הישן. זהו — חזרת לעבודה.</p>
+            </div>
+
+            <div class="gstep">
+              <div class="n">3</div>
+              <h3>בודקים אם נוצל</h3>
+              <p>
+                בעמוד <span class="ui">Usage</span> השווה את הצריכה לימים רגילים. אם יש חריגה
+                משמעותית — פנה לתמיכה של OpenAI דרך החשבון.
+              </p>
+            </div>
+
+            <div class="callout ok">
+              <svg class="ic" aria-hidden="true"><use href="#i-shield" /></svg>
+              <div>
+                <h3 class="callout-h">יש גם רשת ביטחון</h3>
+                <p>
+                  ‏OpenAI היא שותפה של מנגנון סריקת הסודות של GitHub: מפתח שנדחף בטעות לריפו
+                  <strong>ציבורי</strong> מזוהה אוטומטית, מושבת, ואתה מקבל התראה. חשוב לדעת
+                  שבריפו <strong>פרטי</strong> זה לא קורה — שם רק אתה מקבל התראה, והמפתח נשאר
+                  פעיל.
+                </p>
+              </div>
+            </div>
+
+            <div class="callout info">
+              <svg class="ic" aria-hidden="true"><use href="#i-local" /></svg>
+              <div>
+                <h3 class="callout-h">איך NF-Blaze מתייחסת למפתח שלך</h3>
+                <p>
+                  המפתח נשמר מוצפן דרך מערכת ההפעלה, על המחשב שלך בלבד. הוא לא מוצג חזרה בממשק
+                  אחרי השמירה, לא נשלח לשרתים שלנו, ולא נכתב לקובצי הפרויקט. הסוכן עצמו חסום
+                  מלקרוא קבצי סוד — גם אם תבקש ממנו במפורש.
+                </p>
+              </div>
+            </div>
+
+            <div class="guide-next">
+              <a href="gemini.html">
+                <svg class="ic ic-solid" aria-hidden="true"><use href="#i-gemini" /></svg>
+                <span>
+                  Google Gemini
+                  <small>יש שכבה חינמית — אפשר להתחיל בלי כרטיס אשראי</small>
+                </span>
+              </a>
+              <a href="claude.html">
+                <svg class="ic" aria-hidden="true"><use href="#i-claude" /></svg>
+                <span>
+                  Anthropic Claude
+                  <small>חזק בכתיבת קוד; תקרת הוצאה מובנית</small>
+                </span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="wrap">
+        <div class="foot-grid">
+          <div>
+            <a class="brand" href="../">
+              <svg class="brand-mark" aria-hidden="true"><use href="#i-brand" /></svg>
+              NF-Blaze
+            </a>
+            <p>סביבת פיתוח עם AI בעברית, שרצה על המחשב שלך.</p>
+          </div>
+          <div class="foot-col">
+            <h3>מדריכים</h3>
+            <a href="chatgpt.html">ChatGPT · OpenAI</a>
+            <a href="gemini.html">Google Gemini</a>
+            <a href="claude.html">Anthropic Claude</a>
+          </div>
+          <div class="foot-col">
+            <h3>העמוד</h3>
+            <a href="../#capabilities">יכולות</a>
+            <a href="../#integrations">חיבורים</a>
+            <a href="../#security">אבטחה ופרטיות</a>
+          </div>
+          <div class="foot-col">
+            <h3>מידע משפטי</h3>
+            <a href="/privacy.html">מדיניות פרטיות</a>
+            <a href="/terms.html">תקנון ותנאי שימוש</a>
+            <a href="/accessibility.html">הצהרת נגישות</a>
+          </div>
+
+          <div class="foot-col">
+            <h3>יצירת קשר</h3>
+            <a href="mailto:Info@nf-blaze.dev">Info@nf-blaze.dev</a>
+            <a href="../#license">בקשת רישיון</a>
+          </div>
+        </div>
+        <div class="foot-bottom">
+          <span>© <span id="year">2026</span> NF-Blaze · כל הזכויות שמורות</span>
+          <span>nf-blaze.dev</span>
+        </div>
+      </div>
+    </footer>
+
+    <script src="../config.js"></script>
+    <script src="../app.js"></script>
+    <script src="../a11y.js"></script>
+  </body>
+</html>

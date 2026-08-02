@@ -1,10 +1,41 @@
-import { parse } from '@babel/parser'
-import _traverse from '@babel/traverse'
-import * as t from '@babel/types'
-import _generate from '@babel/generator'
+/**
+ * Adds data-nf-file / data-nf-line / data-nf-component to JSX host elements,
+ * so the element picker can map a clicked element back to its source location.
+ *
+ * @babel/* is OPTIONAL and loaded lazily: projects without it (e.g. a plain
+ * Vite project) still get the element picker via the injected client script —
+ * they just don't get file/line tagging. This guarantees injecting the plugin
+ * into a foreign project never breaks its dev server.
+ */
 
-const traverse = typeof _traverse === 'function' ? _traverse : _traverse.default
-const generate = typeof _generate === 'function' ? _generate : _generate.default
+/** @type {{parse:Function, traverse:Function, t:any, generate:Function} | null | undefined} */
+let babel
+/** types helper, set once babel is loaded — used by the helpers below */
+let t
+
+async function loadBabel() {
+  if (babel !== undefined) return babel
+  try {
+    const [parser, traverseMod, types, generateMod] = await Promise.all([
+      import('@babel/parser'),
+      import('@babel/traverse'),
+      import('@babel/types'),
+      import('@babel/generator')
+    ])
+    const traverse =
+      typeof traverseMod.default === 'function'
+        ? traverseMod.default
+        : traverseMod.default?.default || traverseMod.traverse
+    const generate =
+      typeof generateMod.default === 'function'
+        ? generateMod.default
+        : generateMod.default?.default || generateMod.generate
+    babel = { parse: parser.parse, traverse, t: types, generate }
+  } catch {
+    babel = null // אין babel — מדלגים על תיוג JSX; הבורר עדיין עובד
+  }
+  return babel
+}
 
 function componentNameFromNode(opening) {
   const name = opening.name
@@ -34,24 +65,27 @@ function hasAttr(opening, attrName) {
 }
 
 /**
- * Add data-nf-file / data-nf-line / data-nf-component to JSX host elements.
  * @param {string} code
  * @param {string} relFile path relative to project root (posix)
+ * @returns {Promise<{code:string, map:any}|null>} null when babel is unavailable
  */
-export function transformJsxSource(code, relFile) {
-  const ast = parse(code, {
+export async function transformJsxSource(code, relFile) {
+  const b = await loadBabel()
+  if (!b) return null
+  t = b.t
+
+  const ast = b.parse(code, {
     sourceType: 'module',
     plugins: ['jsx', 'typescript', 'classProperties', 'decorators-legacy']
   })
 
-  traverse(ast, {
+  b.traverse(ast, {
     JSXOpeningElement(path) {
       const opening = path.node
       if (opening.selfClosing === undefined) return
       if (isFragmentName(opening)) return
       if (hasAttr(opening, 'data-nf-file')) return
 
-      // Skip lowercase? No — we want div/button/etc. tagged too.
       const line = opening.loc?.start.line ?? 0
       const comp = componentNameFromNode(opening)
 
@@ -63,7 +97,7 @@ export function transformJsxSource(code, relFile) {
     }
   })
 
-  const out = generate(
+  const out = b.generate(
     ast,
     { retainLines: true, compact: false, jsescOption: { minimal: true } },
     code

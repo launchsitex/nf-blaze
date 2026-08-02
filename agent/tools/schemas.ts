@@ -13,7 +13,8 @@ const pathProp = {
 export const TOOL_DEFINITIONS: ToolDefinition[] = [
   {
     name: 'read_file',
-    description: 'Read the contents of a text file in the project.',
+    description:
+      'Read a text file from the project. Required before edit_file on that path. For a large file, pass offset/limit to read the relevant window instead of the whole file. Example: read_file({ path: "src/App.tsx" }).',
     parameters: {
       type: 'object',
       additionalProperties: false,
@@ -60,7 +61,8 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
   },
   {
     name: 'grep',
-    description: 'Search file contents for a regex or literal pattern.',
+    description:
+      'Search file contents across the project. Use this to locate where something lives before reading it — cheaper than reading many files. Pass literal:true when searching for plain text rather than a pattern. Example: grep({ pattern: "כפתור יצירת קשר", literal: true }).',
     parameters: {
       type: 'object',
       additionalProperties: false,
@@ -98,7 +100,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
   {
     name: 'declare_scope',
     description:
-      'Declare the list of files you intend to edit/write in this request. MUST be called before the first edit_file or write_file. To touch additional files later, call again with those files and a non-empty reason (scope expansion).',
+      'Declare which files you intend to create or modify in this request. MUST be called before the first edit_file or write_file — writes outside the declared scope are rejected. To touch more files later, call again with those paths and a non-empty reason. Keeping the scope tight is how the user stays in control of what changed. Example: declare_scope({ files: ["src/components/Header.tsx"], reason: "הוספת כפתור יצירת קשר" }).',
     parameters: {
       type: 'object',
       additionalProperties: false,
@@ -121,7 +123,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
   {
     name: 'edit_file',
     description:
-      'Replace an exact unique substring in a file. File must be in declared scope and must have been read_file in this session. Fails if old_string is missing or appears more than once.',
+      'Replace one exact, unique substring in an existing file. This is the DEFAULT way to change a file that already exists — prefer it over write_file, which loses content. Requirements: the file is in the declared scope, and you called read_file on it in this session. Fails if old_string is missing (you mistyped it — re-read the file) or appears more than once (add surrounding lines until it is unique). Example: edit_file({ path: "src/App.tsx", old_string: "<h1>שלום</h1>", new_string: "<h1>ברוכים הבאים</h1>" }).',
     parameters: {
       type: 'object',
       additionalProperties: false,
@@ -129,11 +131,13 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
         path: pathProp,
         old_string: {
           type: 'string',
-          description: 'Exact text to find — must appear exactly once in the file'
+          description:
+            'The exact text to find, copied character-for-character from the file including indentation and line breaks. Must appear exactly once. Include a line above and below when the snippet alone is not unique.'
         },
         new_string: {
           type: 'string',
-          description: 'Replacement text'
+          description:
+            'The text that replaces old_string. Keep the surrounding lines you included in old_string so the result stays valid.'
         }
       },
       required: ['path', 'old_string', 'new_string']
@@ -204,6 +208,12 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
             },
             required: ['title']
           }
+        },
+        acceptance: {
+          type: 'array',
+          description:
+            'Acceptance criteria, written BEFORE building: the concrete things that must work for this task to count as done. Each item is one short, checkable sentence in the user\'s language — e.g. "לחיצה על שלח שולחת את הטופס ומציגה הודעת הצלחה". Verify against these before declaring the task finished.',
+          items: { type: 'string' }
         }
       },
       required: ['goal', 'stages']

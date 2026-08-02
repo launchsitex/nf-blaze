@@ -14,6 +14,10 @@ export interface Usage {
   inputTokens: number
   outputTokens: number
   totalTokens: number
+  /** טוקנים שנקראו ממטמון הפרומפט (עלות ~10% מקלט רגיל) */
+  cacheReadTokens?: number
+  /** טוקנים שנכתבו למטמון בסבב הזה (חד-פעמי) */
+  cacheWriteTokens?: number
 }
 
 /** JSON-Schema style parameters (provider adapters translate as needed) */

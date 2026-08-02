@@ -79,6 +79,19 @@ export {
   resolveApiKey
 } from './resolve'
 
+export {
+  repairToolArguments,
+  coerceArgumentsToSchema,
+  type RepairKind,
+  type RepairResult
+} from './repair'
+export {
+  pickCacheBreakpoints,
+  worthCaching,
+  CACHE_LOOKBACK_BLOCKS,
+  MAX_CACHE_BREAKPOINTS
+} from './cache'
+
 export { ollamaAdapter, lmstudioAdapter, openrouterAdapter } from './compat'
 
 export { toOpenAIMessages, toOpenAITools, fromOpenAIAssistant } from './openai/convert'

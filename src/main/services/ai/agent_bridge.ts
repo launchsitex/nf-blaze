@@ -13,7 +13,7 @@ import type {
   SendChatResult
 } from '../../../shared/types'
 import { providerRequiresKey } from '../../../shared/types'
-import { getApiKey } from '../secrets'
+import { getApiKey, getGithubToken } from '../secrets'
 import { loadChat, saveChat, getProject, saveProject } from '../storage'
 import { buildFileTree, summarizeTree } from '../filesystem'
 import { createSnapshot, extendSnapshot, getSnapshotChangeStats } from '../snapshots'
@@ -24,6 +24,8 @@ import { EMBEDDED_SYSTEM_PROMPT } from './system_prompt.generated'
 import type { WorkModeSelection } from '../../../../agent/intent'
 import type { UnifiedMessage } from '../../../../providers'
 import { isSecretPath } from '../../../../agent/tools/paths'
+import { buildRepoMap } from '../../../../agent/repo_map'
+import { readTrust, shouldAutoApprove } from '../trust'
 import { readPlan } from '../../../../agent/tools/update_plan'
 import { readProjectMemory } from '../../../../agent/tools/save_memory'
 import { registerChatAbort, clearChatAbort, type StreamEmitter } from './agent_controllers'
@@ -33,7 +35,11 @@ import { onProjectCheckEvent } from '../../../../agent/completion_check'
 import { ensureLivePreview } from '../preview-live'
 import { loadIntegrations } from '../integrations/store'
 import { getSupabaseContextForAgent } from '../integrations/supabase'
+import { buildSupabaseSqlTool } from '../integrations/supabase_management'
+import { buildEdgeFunctionTool } from '../integrations/supabase_functions'
+import { buildGithubPublishTool } from '../integrations/github'
 import {
+  mergeStreamedWithFinal,
   parseClarifyBlock,
   sanitizeHistoryContentForReadOnly,
   stripActionBlocksForDisplay
@@ -78,7 +84,20 @@ function buildProjectContextBlock(rootDir: string, projectName: string): string 
   try {
     const tree = buildFileTree(rootDir)
     const summary = summarizeTree(tree).slice(0, 4000)
-    return `## הפרויקט: ${projectName}\nמבנה הקבצים:\n${summary}`
+    // מפת מרכזיות — עץ הקבצים אומר *מה קיים*, המפה אומרת *מה חשוב*
+    let map = ''
+    try {
+      map = buildRepoMap(rootDir)
+    } catch {
+      /* best-effort — עץ הקבצים לבדו עדיין שימושי */
+    }
+    return [
+      `## הפרויקט: ${projectName}`,
+      `מבנה הקבצים:\n${summary}`,
+      map ? `\n${map}` : ''
+    ]
+      .filter(Boolean)
+      .join('\n')
   } catch {
     return `## הפרויקט: ${projectName}`
   }
@@ -88,9 +107,14 @@ function buildIntegrationsBlock(projectId: string): string {
   const parts: string[] = []
   try {
     const integ = loadIntegrations(projectId)
+    const hasGithubAccount = Boolean(getGithubToken())
     if (integ.github.connected && integ.github.repoFullName) {
       parts.push(
-        `## GitHub מחובר\n- ריפו: ${integ.github.repoFullName}\n- ענף: ${integ.github.defaultBranch || 'main'}\n- אל תכלול סודות ב-commit; וודא .gitignore תקין.`
+        `## GitHub מחובר\n- ריפו: ${integ.github.repoFullName}\n- ענף: ${integ.github.defaultBranch || 'main'}\n- אל תכלול סודות ב-commit; וודא .gitignore תקין.\n- פרסום: קרא ל-\`publish_github\` כשהמשתמש מבקש לפרסם/להעלות — ייווצר **ענף חדש** (nf-blaze-...) בלי לגעת בראשי.`
+      )
+    } else if (hasGithubAccount) {
+      parts.push(
+        `## GitHub — חשבון מחובר (הפרויקט עדיין לא מקושר לריפו)\n- פרסום: קרא ל-\`publish_github\` כשהמשתמש מבקש לפרסם/להעלות — ייווצר **ריפו חדש** בחשבון המשתמש והקוד יועלה.`
       )
     }
     const sb = getSupabaseContextForAgent(projectId)
@@ -127,7 +151,12 @@ function buildPlanBlock(rootDir: string): string {
     (s) =>
       `${s.status === 'done' ? '[x]' : s.status === 'in_progress' ? '[~]' : '[ ]'} ${s.id}. ${s.title}${s.notes ? ` — ${s.notes}` : ''}`
   )
-  return `## תוכנית בנייה פעילה\nמטרה: ${plan.goal}\n${lines.join('\n')}\nיש תוכנית פעילה — המשך מהשלב הראשון שאינו done ועדכן סטטוסים עם update_plan.`
+  const acceptance = plan.acceptance?.length
+    ? `\nקריטריוני קבלה (חובה לאמת מולם לפני שמכריזים על סיום):\n${plan.acceptance
+        .map((a, i) => `${i + 1}. ${a}`)
+        .join('\n')}`
+    : ''
+  return `## תוכנית בנייה פעילה\nמטרה: ${plan.goal}\n${lines.join('\n')}${acceptance}\nיש תוכנית פעילה — המשך מהשלב הראשון שאינו done ועדכן סטטוסים עם update_plan.`
 }
 
 function historyToUnified(messages: ChatMessage[]): UnifiedMessage[] {
@@ -325,6 +354,21 @@ export async function sendChatMessageNew(
     } catch {
       /* MCP optional */
     }
+
+    // כלי run_sql — גישה ישירה של הסוכן ל-Supabase של הפרויקט (אם חובר access token)
+    const sqlTool = buildSupabaseSqlTool(params.projectId)
+    if (sqlTool) {
+      mcpTools.push(sqlTool)
+      notify({ type: 'status', step: 'mcp', message: 'Supabase: הסוכן יכול להריץ SQL ישירות' })
+    }
+
+    // כלי deploy_edge_function — לוגיקת שרת שאסור שתרוץ בדפדפן
+    const edgeTool = buildEdgeFunctionTool(params.projectId)
+    if (edgeTool) mcpTools.push(edgeTool)
+
+    // כלי publish_github — פרסום הפרויקט ל-GitHub (אם חשבון GitHub מחובר)
+    const ghTool = buildGithubPublishTool(params.projectId)
+    if (ghTool) mcpTools.push(ghTool)
 
     const loopResult = await runAgentLoop({
       model: params.model,
@@ -581,6 +625,25 @@ export async function sendChatMessageNew(
             })
             break
 
+          case 'health':
+            // skipped = כשל תשתיתי (אין Vite/Chromium) — לא מציגים למשתמש
+            if (event.phase === 'skipped') break
+            notify({
+              type: 'health',
+              phase: event.phase,
+              message: event.message,
+              regressions: event.regressions
+            })
+            notify({
+              type: 'status',
+              step: 'health',
+              message:
+                event.phase === 'regressed'
+                  ? `⚠ נשבר משהו שעבד (${event.regressions?.length ?? 0})`
+                  : `בסיס ירוק · ${event.message}`
+            })
+            break
+
           case 'done':
             if (event.result.stopReason === 'completed') {
               notify({ type: 'completion_check', ok: true })
@@ -598,7 +661,7 @@ export async function sendChatMessageNew(
     }
 
     let assistantText =
-      loopResult.text?.trim() ||
+      mergeStreamedWithFinal(lastLiveText.trim(), loopResult.text?.trim() || '') ||
       (aborted
         ? 'הופסק.'
         : loopResult.error ||
@@ -622,6 +685,15 @@ export async function sendChatMessageNew(
       }
     }
 
+    const autoApproved =
+      writtenPaths.length > 0 &&
+      snapshotId !== undefined &&
+      shouldAutoApprove({
+        level: readTrust(rootDir).level,
+        filesChanged: writtenPaths.length,
+        hasRegressions: Boolean(loopResult.regressions?.length)
+      })
+
     const assistantMessage: ChatMessage = {
       id: uuidv4(),
       role: 'assistant',
@@ -636,6 +708,11 @@ export async function sendChatMessageNew(
       modeBlockedWrites: loopResult.modeBlockedWrites,
       // מאפשר diff / שחזור / אישור-ביטול שינויים על הסבב הזה מהצ'אט
       snapshotId: writtenPaths.length ? snapshotId : undefined,
+      // «בסיס ירוק» — מוצג ליד «בטל שינויים» כדי שההחלטה תהיה מיודעת
+      regressions: loopResult.regressions?.length ? loopResult.regressions : undefined,
+      // אמון מדורג: אחרי מספיק אישורים רצופים, שינוי קטן ונקי נסגר לבד.
+      // רגרסיה או שינוי גדול תמיד חוזרים לשאלה.
+      ...(autoApproved ? { changesApproved: true, autoApproved: true } : {}),
       changeStats:
         writtenPaths.length && snapshotId
           ? getSnapshotChangeStats(params.projectId, snapshotId)

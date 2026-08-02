@@ -1,0 +1,43 @@
+{
+  "model": "gemini-3.1-pro-preview",
+  "reports": [
+    {
+      "id": "contact-form-validation",
+      "status": "pass",
+      "durationMs": 199910,
+      "iterations": 25,
+      "inputTokens": 294267,
+      "outputTokens": 6001,
+      "cacheReadTokens": 156636,
+      "stopReason": "completed",
+      "checks": [
+        {
+          "name": "אין טקסט ממלא",
+          "status": "pass"
+        },
+        {
+          "name": "תוכן בעברית",
+          "status": "pass",
+          "detail": "index.html"
+        },
+        {
+          "name": "מכבד את מערכת העיצוב",
+          "status": "pass"
+        },
+        {
+          "name": "אין סודות בקוד",
+          "status": "pass"
+        },
+        {
+          "name": "index.html עם lang=he ו-dir=rtl",
+          "status": "pass"
+        },
+        {
+          "name": "ולידציה",
+          "status": "pass",
+          "detail": "src\\components\\ContactForm.tsx"
+        }
+      ]
+    }
+  ]
+}

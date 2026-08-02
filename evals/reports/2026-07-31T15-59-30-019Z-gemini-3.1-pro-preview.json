@@ -1,0 +1,50 @@
+{
+  "model": "gemini-3.1-pro-preview",
+  "reports": [
+    {
+      "id": "scoped-edit",
+      "status": "error",
+      "error": "תיקיית פרויקט המשתמש לא קיימת: C:\\Users\\folna\\AppData\\Local\\Temp\\nf-eval-scoped-edit-15764-12",
+      "durationMs": 189956,
+      "iterations": 47,
+      "inputTokens": 609419,
+      "outputTokens": 3403,
+      "cacheReadTokens": 371699,
+      "stopReason": "error",
+      "checks": [
+        {
+          "name": "אין טקסט ממלא",
+          "status": "pass"
+        },
+        {
+          "name": "תוכן בעברית",
+          "status": "fail",
+          "detail": "לא נמצא טקסט עברי"
+        },
+        {
+          "name": "מכבד את מערכת העיצוב",
+          "status": "pass"
+        },
+        {
+          "name": "אין סודות בקוד",
+          "status": "pass"
+        },
+        {
+          "name": "index.html עם lang=he ו-dir=rtl",
+          "status": "fail",
+          "detail": "חסר dir=\"rtl\" או lang=\"he\""
+        },
+        {
+          "name": "הכותרת שונתה",
+          "status": "fail",
+          "detail": "לא נמצא: /ברוכים הבאים/"
+        },
+        {
+          "name": "קיים src/App.tsx",
+          "status": "fail",
+          "detail": "הקובץ לא נוצר"
+        }
+      ]
+    }
+  ]
+}

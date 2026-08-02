@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>איך משיגים מפתח API של Anthropic Claude · מדריך NF-Blaze</title>
+    <meta
+      name="description"
+      content="מדריך מלא בעברית להוצאת מפתח Claude מ-platform.claude.com: למה מנוי Claude Pro לא מספיק, טעינת קרדיט, תקרת הוצאה, תוקף למפתח, וחיבור ל-NF-Blaze בבטחה."
+    />
+    <meta name="theme-color" content="#07090d" />
+    <link rel="canonical" href="https://nf-blaze.dev/guides/claude.html" />
+    <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../styles.css" />
+    <link rel="stylesheet" href="../a11y.css" />
+  </head>
+
+  <body>
+    <script src="../sprite.js"></script>
+
+    <a class="skip-link" href="#main-content">דלג לתוכן הראשי</a>
+
+    <nav class="nav" id="nav">
+      <div class="wrap">
+        <a class="brand" href="../" aria-label="NF-Blaze — לעמוד הבית">
+          <svg class="brand-mark" aria-hidden="true"><use href="#i-brand" /></svg>
+          NF-Blaze
+        </a>
+        <div class="nav-links">
+          <a href="../#capabilities">יכולות</a>
+          <a href="../#integrations">חיבורים</a>
+          <a href="./">מדריכים</a>
+          <a href="../#faq">שאלות</a>
+          <a href="../#download">הורדה</a>
+        </div>
+        <a class="btn btn-primary nav-cta" href="../#license">
+          <svg class="ic" aria-hidden="true"><use href="#i-key" /></svg>
+          בקשת רישיון
+        </a>
+        <button class="nav-toggle" id="navToggle" aria-label="תפריט" aria-expanded="false">
+          <svg class="ic" aria-hidden="true"><use href="#i-menu" /></svg>
+        </button>
+      </div>
+    </nav>
+
+    <div class="mobile-menu" id="mobileMenu">
+      <a href="../#capabilities">יכולות</a>
+      <a href="../#integrations">חיבורים</a>
+      <a href="../#security">אבטחה ופרטיות</a>
+      <div class="menu-group">מדריכים</div>
+      <a class="sub" href="chatgpt.html">
+        <svg class="ic" aria-hidden="true"><use href="#i-openai" /></svg>
+        ChatGPT · OpenAI
+      </a>
+      <a class="sub" href="gemini.html">
+        <svg class="ic ic-solid" aria-hidden="true"><use href="#i-gemini" /></svg>
+        Google Gemini
+      </a>
+      <a class="sub" href="claude.html">
+        <svg class="ic" aria-hidden="true"><use href="#i-claude" /></svg>
+        Anthropic Claude
+      </a>
+      <a class="btn btn-primary" href="../#license">
+        <svg class="ic" aria-hidden="true"><use href="#i-key" /></svg>
+        בקשת רישיון
+      </a>
+    </div>
+
+    <main id="main-content">
+      <section class="guide-hero">
+        <div class="aurora" aria-hidden="true"><div class="blob blob-3"></div></div>
+
+        <div class="wrap">
+          <div class="crumb">
+            <a href="../">ראשי</a>
+            <span class="sep">←</span>
+            <a href="./">מדריכים</a>
+            <span class="sep">←</span>
+            <span>Anthropic Claude</span>
+          </div>
+
+          <div class="guide-title">
+            <span class="brand-badge">
+              <svg class="ic" aria-hidden="true"><use href="#i-claude" /></svg>
+            </span>
+            <h1>חיבור Anthropic Claude ל-NF-Blaze</h1>
+          </div>
+
+          <p class="lead">
+            ‏Claude נחשב לחזק במיוחד בכתיבת קוד ובמשימות ארוכות, ולכן הוא בחירה טבעית לעבודה
+            עם NF-Blaze. יש לו גם יתרון שקט בבטיחות: לחשבון חדש יש תקרת הוצאה מובנית.
+          </p>
+
+          <div class="meta-row">
+            <div class="meta">
+              <div class="k">כמה זמן</div>
+              <div class="v">‏5 דקות</div>
+            </div>
+            <div class="meta">
+              <div class="k">צריך כרטיס אשראי?</div>
+              <div class="v">כן — טעינה מראש מ-5$</div>
+            </div>
+            <div class="meta">
+              <div class="k">איך המפתח נראה</div>
+              <div class="v"><span class="mono">sk-ant-api03-…</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section style="padding-top: 0">
+        <div class="wrap">
+          <div class="guide-body">
+            <div class="callout danger">
+              <svg class="ic" aria-hidden="true"><use href="#i-alert" /></svg>
+              <div>
+                <h2 class="callout-h">מנוי Claude Pro אינו מספיק</h2>
+                <p>
+                  ‏Anthropic מנסחת את זה מפורשות: <em>מנוי בתשלום משפר את חוויית הצ׳אט, אבל אינו
+                  כולל גישה ל-API או לקונסולה.</em> אלה שני מוצרים נפרדים עם חיוב נפרד.
+                </p>
+                <p>
+                  כלומר גם אם אתה משלם על Claude Pro או Max — כדי להשתמש ב-NF-Blaze תצטרך
+                  לפתוח חשבון קונסולה ולטעון בו סכום קטן, בנפרד.
+                </p>
+              </div>
+            </div>
+
+            <h2>השגת המפתח — שלב אחר שלב</h2>
+
+            <div class="gstep">
+              <div class="n">1</div>
+              <h3>נכנסים לקונסולה</h3>
+              <p>
+                גלוש אל
+                <a href="https://platform.claude.com" target="_blank" rel="noopener"
+                  >platform.claude.com</a
+                >
+                ופתח חשבון (אפשר עם Google).
+              </p>
+              <div class="callout info">
+                <svg class="ic" aria-hidden="true"><use href="#i-arrow" /></svg>
+                <div>
+                  <h3 class="callout-h">הכתובת השתנתה</h3>
+                  <p>
+                    מדריכים ישנים מפנים ל-<span class="mono">console.anthropic.com</span>. הכתובת
+                    הזו עדיין מפנה אוטומטית לחדשה, אבל אם מה שאתה רואה על המסך לא תואם למדריך —
+                    זו כנראה הסיבה. הכתובת הנכונה היום היא
+                    <span class="mono">platform.claude.com</span>.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div class="gstep">
+              <div class="n">2</div>
+              <h3>טוענים קרדיט</h3>
+              <p>
+                גם כאן העבודה היא ב<strong>תשלום מראש</strong>: קונים קרדיט והשימוש יורד ממנו.
+                היכנס ל-<span class="ui">Settings</span> ←
+                <span class="ui">Plans &amp; Billing</span> וטען סכום התחלתי (מינימום כ-5$).
+              </p>
+              <ul>
+                <li>
+                  יש אפשרות <span class="ui">auto-reload</span> — טעינה אוטומטית כשהיתרה יורדת.
+                  <strong>השאר אותה כבויה בהתחלה</strong>: אם מפתח ידלוף, היא זו שתמשיך לחייב
+                  אותך בלולאה.
+                </li>
+              </ul>
+            </div>
+
+            <div class="gstep">
+              <div class="n">3</div>
+              <h3>יוצרים את המפתח — ונותנים לו תאריך תפוגה</h3>
+              <p>
+                גלוש אל
+                <a href="https://platform.claude.com/settings/keys" target="_blank" rel="noopener"
+                  >‏Settings ← API keys</a
+                >
+                וצור מפתח חדש. תן לו שם שיזכיר לך למה הוא משמש, למשל
+                <span class="mono">NF-Blaze</span>.
+              </p>
+              <div class="callout ok">
+                <svg class="ic" aria-hidden="true"><use href="#i-clock" /></svg>
+                <div>
+                  <h3 class="callout-h">יתרון ייחודי ל-Claude: תוקף למפתח</h3>
+                  <p>
+                    בעת היצירה אפשר לבחור <strong>מתי המפתח יפוג</strong>. זו הגנה מצוינת שאין
+                    אצל האחרים — גם אם המפתח ידלוף ולא תשים לב, הוא ימות מעצמו. אם אתה מתלבט,
+                    בחר תוקף של כמה חודשים; לחדש זה עניין של דקה.
+                  </p>
+                </div>
+              </div>
+              <div class="callout warn">
+                <svg class="ic" aria-hidden="true"><use href="#i-eye-off" /></svg>
+                <div>
+                  <h3 class="callout-h">המפתח מוצג פעם אחת</h3>
+                  <p>
+                    אחרי סגירת החלון לא תוכל לשלוף אותו שוב. העתק והדבק ישירות ל-NF-Blaze. אם
+                    איבדת — מוחקים ויוצרים חדש.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div class="gstep">
+              <div class="n">4</div>
+              <h3>קובעים תקרת הוצאה</h3>
+              <p>
+                גלוש אל
+                <a
+                  href="https://platform.claude.com/settings/limits"
+                  target="_blank"
+                  rel="noopener"
+                  >‏Settings ← Limits</a
+                >, ובאזור <span class="ui">Spend limits</span> לחץ
+                <span class="ui">Change Limit</span> (או <span class="ui">Set spend limit</span> אם
+                עוד לא הוגדרה) והזן סכום.
+              </p>
+              <div class="callout ok">
+                <svg class="ic" aria-hidden="true"><use href="#i-shield" /></svg>
+                <div>
+                  <h3 class="callout-h">יש כאן רשת ביטחון מובנית</h3>
+                  <p>
+                    חשבון חדש נמצא בדרגת <span class="ui">Start</span>, שתקרתה
+                    <strong>500$ לחודש</strong>. כלומר גם בתרחיש הגרוע ביותר הנזק חסום מבנית —
+                    בניגוד לספקים אחרים, שבהם ההוצאה יכולה לרוץ ללא גבול.
+                  </p>
+                  <p>
+                    ובכל זאת — קבע תקרה נמוכה משלך. 500$ זה עדיין הרבה כסף.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div class="gstep">
+              <div class="n">5</div>
+              <h3>מדביקים ב-NF-Blaze</h3>
+              <p>
+                פתח את NF-Blaze ← <span class="ui">הגדרות</span> ←
+                <span class="ui">מודלים ומפתחות</span> ← בחר
+                <strong>Anthropic (Claude)</strong> ← הדבק ← <span class="ui">שמור</span>.
+              </p>
+            </div>
+
+            <div class="callout info">
+              <svg class="ic" aria-hidden="true"><use href="#i-key" /></svg>
+              <div>
+                <h3 class="callout-h">מלכודת: שני סוגי מחרוזות שנראות דומה</h3>
+                <p>
+                  מפתח API תקין מתחיל ב-<span class="mono">sk-ant-api03-</span>. אם מה שיש לך
+                  מתחיל ב-<span class="mono">sk-ant-oat01-</span> — זהו טוקן של כלי צד-ראשון
+                  שמחויב מול מנוי Pro/Max, <strong>ולא מפתח API</strong>. הוא לא יעבוד כאן.
+                </p>
+              </div>
+            </div>
+
+            <h2>לשמור על המפתח — למה זה קריטי</h2>
+
+            <p>
+              מפתח API הוא לא סיסמה. סיסמה גנובה נותנת גישה לחשבון;
+              <strong>מפתח גנוב הוא אמצעי תשלום</strong> — מי שמחזיק בו צורך על חשבונך, בלי
+              אימות דו-שלבי ובלי שתדע.
+            </p>
+
+            <div class="callout danger">
+              <svg class="ic" aria-hidden="true"><use href="#i-clock" /></svg>
+              <div>
+                <h3 class="callout-h">זה קורה מהר</h3>
+                <p>
+                  בוטים סורקים ריפוזיטוריז ציבוריים ב-GitHub ומאתרים מפתחות שנחשפו
+                  <strong>תוך דקות</strong>. לפי דוח GitGuardian, כמות מפתחות שירותי ה-AI
+                  שנחשפים בקוד ציבורי <strong>עלתה ב-81% בשנה</strong>, ויש מקרים מתועדים של
+                  חיובים בגובה אלפי דולרים תוך ימים.
+                </p>
+              </div>
+            </div>
+
+            <div class="rules">
+              <div class="rule no">
+                <span class="mark">✕</span>
+                <div>
+                  <strong>לא לשלוח באף ערוץ</strong>
+                  <span>לא בוואטסאפ, לא במייל, לא בצילום מסך, ולא בצ׳אט תמיכה.</span>
+                </div>
+              </div>
+              <div class="rule no">
+                <span class="mark">✕</span>
+                <div>
+                  <strong>לא להעלות לגיט</strong>
+                  <span>
+                    לא בקוד ולא ב-<span class="mono">.env</span> שנדחף לריפו. ‏NF-Blaze חוסמת
+                    מהסוכן גישה לקבצי סוד.
+                  </span>
+                </div>
+              </div>
+              <div class="rule no">
+                <span class="mark">✕</span>
+                <div>
+                  <strong>לא בקוד שרץ בדפדפן</strong>
+                  <span>כל מה שרץ אצל המשתמש גלוי לו.</span>
+                </div>
+              </div>
+              <div class="rule yes">
+                <span class="mark">✓</span>
+                <div>
+                  <strong>תוקף קצר למפתח</strong>
+                  <span>הפיצ׳ר הכי שימושי כאן. מפתח שפג לבד הוא מפתח שלא יכול להזיק לנצח.</span>
+                </div>
+              </div>
+              <div class="rule yes">
+                <span class="mark">✓</span>
+                <div>
+                  <strong>תקרת הוצאה נמוכה משלך</strong>
+                  <span>אל תסתמך על 500$ של דרגת Start — קבע סכום שנוח לך.</span>
+                </div>
+              </div>
+              <div class="rule yes">
+                <span class="mark">✓</span>
+                <div>
+                  <strong>מפתח נפרד לכל שימוש</strong>
+                  <span>אם אחד נחשף — מוחקים אותו בלי לשבור את השאר.</span>
+                </div>
+              </div>
+            </div>
+
+            <h2>חושד שהמפתח דלף? כך פועלים</h2>
+
+            <div class="gstep">
+              <div class="n">1</div>
+              <h3>מוחקים מיד</h3>
+              <p>
+                היכנס ל-<a
+                  href="https://platform.claude.com/settings/keys"
+                  target="_blank"
+                  rel="noopener"
+                  >עמוד המפתחות</a
+                >, לחץ על <strong>שלוש הנקודות</strong> שליד המפתח, ובחר
+                <span class="ui">Delete API Key</span>.
+              </p>
+            </div>
+
+            <div class="gstep">
+              <div class="n">2</div>
+              <h3>יוצרים חדש ומעדכנים</h3>
+              <p>צור מפתח חדש (עם תוקף!) והדבק ב-NF-Blaze במקום הישן.</p>
+            </div>
+
+            <div class="gstep">
+              <div class="n">3</div>
+              <h3>בודקים אם נוצל</h3>
+              <p>בדוק את דוח השימוש בקונסולה מול ימים רגילים. חריגה חדה = סימן אזהרה.</p>
+            </div>
+
+            <div class="callout ok">
+              <svg class="ic" aria-hidden="true"><use href="#i-shield" /></svg>
+              <div>
+                <h3 class="callout-h">ל-Anthropic יש את רשת הביטחון הטובה ביותר</h3>
+                <p>
+                  אם מפתח נדחף בטעות לריפו <strong>ציבורי</strong> ב-GitHub, ‏GitHub מודיעה
+                  ל-Anthropic מיידית, ו<strong>Anthropic משביתה את המפתח אוטומטית</strong>
+                  ושולחת לך מייל. זה מתועד רשמית אצלם.
+                </p>
+                <p>
+                  ⚠️ בריפו <strong>פרטי</strong> זה לא קורה — שם רק אתה מקבל התראה, והמפתח נשאר
+                  פעיל. אל תסתמך על זה.
+                </p>
+              </div>
+            </div>
+
+            <div class="callout info">
+              <svg class="ic" aria-hidden="true"><use href="#i-local" /></svg>
+              <div>
+                <h3 class="callout-h">איך NF-Blaze מתייחסת למפתח שלך</h3>
+                <p>
+                  המפתח נשמר מוצפן דרך מערכת ההפעלה, על המחשב שלך בלבד. הוא לא מוצג חזרה בממשק
+                  אחרי השמירה, לא נשלח לשרתים שלנו, ולא נכתב לקובצי הפרויקט.
+                </p>
+              </div>
+            </div>
+
+            <div class="guide-next">
+              <a href="chatgpt.html">
+                <svg class="ic" aria-hidden="true"><use href="#i-openai" /></svg>
+                <span>
+                  ChatGPT · OpenAI
+                  <small>תקרת הוצאה קשיחה שעוצרת את השירות</small>
+                </span>
+              </a>
+              <a href="gemini.html">
+                <svg class="ic ic-solid" aria-hidden="true"><use href="#i-gemini" /></svg>
+                <span>
+                  Google Gemini
+                  <small>שכבה חינמית — להתחיל בלי כרטיס אשראי</small>
+                </span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="wrap">
+        <div class="foot-grid">
+          <div>
+            <a class="brand" href="../">
+              <svg class="brand-mark" aria-hidden="true"><use href="#i-brand" /></svg>
+              NF-Blaze
+            </a>
+            <p>סביבת פיתוח עם AI בעברית, שרצה על המחשב שלך.</p>
+          </div>
+          <div class="foot-col">
+            <h3>מדריכים</h3>
+            <a href="chatgpt.html">ChatGPT · OpenAI</a>
+            <a href="gemini.html">Google Gemini</a>
+            <a href="claude.html">Anthropic Claude</a>
+          </div>
+          <div class="foot-col">
+            <h3>העמוד</h3>
+            <a href="../#capabilities">יכולות</a>
+            <a href="../#integrations">חיבורים</a>
+            <a href="../#security">אבטחה ופרטיות</a>
+          </div>
+          <div class="foot-col">
+            <h3>מידע משפטי</h3>
+            <a href="/privacy.html">מדיניות פרטיות</a>
+            <a href="/terms.html">תקנון ותנאי שימוש</a>
+            <a href="/accessibility.html">הצהרת נגישות</a>
+          </div>
+
+          <div class="foot-col">
+            <h3>יצירת קשר</h3>
+            <a href="mailto:Info@nf-blaze.dev">Info@nf-blaze.dev</a>
+            <a href="../#license">בקשת רישיון</a>
+          </div>
+        </div>
+        <div class="foot-bottom">
+          <span>© <span id="year">2026</span> NF-Blaze · כל הזכויות שמורות</span>
+          <span>nf-blaze.dev</span>
+        </div>
+      </div>
+    </footer>
+
+    <script src="../config.js"></script>
+    <script src="../app.js"></script>
+    <script src="../a11y.js"></script>
+  </body>
+</html>

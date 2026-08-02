@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "landing",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["--yes", "serve", "landing", "-l", "4321", "--no-clipboard"],
+      "port": 4321
+    },
+    {
+      "name": "license-portal",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["--yes", "serve", "license-portal", "-l", "4322", "--no-clipboard"],
+      "port": 4322
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "model": "gemini-3.1-pro-preview",
+  "reports": [
+    {
+      "id": "crm-customers",
+      "status": "pass",
+      "durationMs": 348061,
+      "iterations": 52,
+      "inputTokens": 1133362,
+      "outputTokens": 16948,
+      "cacheReadTokens": 848232,
+      "stopReason": "completed",
+      "checks": [
+        {
+          "name": "אין טקסט ממלא",
+          "status": "pass"
+        },
+        {
+          "name": "תוכן בעברית",
+          "status": "pass",
+          "detail": "index.html"
+        },
+        {
+          "name": "מכבד את מערכת העיצוב",
+          "status": "pass"
+        },
+        {
+          "name": "אין סודות בקוד",
+          "status": "pass"
+        },
+        {
+          "name": "index.html עם lang=he ו-dir=rtl",
+          "status": "pass"
+        },
+        {
+          "name": "מצבי רשימה",
+          "status": "pass",
+          "detail": "אין רשימות דינמיות"
+        },
+        {
+          "name": "יש חיפוש",
+          "status": "pass",
+          "detail": "src\\App.tsx"
+        }
+      ]
+    }
+  ]
+}

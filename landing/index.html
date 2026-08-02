@@ -1,0 +1,928 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>NF-Blaze · סביבת פיתוח עם AI שרצה אצלך במחשב</title>
+    <meta
+      name="description"
+      content="NF-Blaze היא תוכנת דסקטופ בעברית שבונה אפליקציות עם AI — הקוד, המפתחות והפרויקטים נשארים על המחשב שלך. חיבור בלחיצה ל-GitHub, Supabase ו-Vercel."
+    />
+    <meta name="theme-color" content="#07090d" />
+    <link rel="canonical" href="https://nf-blaze.dev/" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="he_IL" />
+    <meta property="og:site_name" content="NF-Blaze" />
+    <meta property="og:title" content="NF-Blaze · בונה מערכות עם AI, אצלך במחשב" />
+    <meta
+      property="og:description"
+      content="תאר בעברית מה לבנות — הסוכן כותב קבצים אמיתיים, מריץ, בודק ומפרסם. הכל מקומי."
+    />
+    <meta property="og:url" content="https://nf-blaze.dev/" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="favicon.svg" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="a11y.css" />
+  </head>
+
+  <body>
+    <!-- סט האייקונים המשותף לכל עמודי האתר. נטען סינכרונית כדי שאין הבהוב. -->
+    <script src="sprite.js"></script>
+
+    <a class="skip-link" href="#top">דלג לתוכן הראשי</a>
+
+    <!-- ================= ניווט ================= -->
+    <nav class="nav" id="nav">
+      <div class="wrap">
+        <a class="brand" href="#top" aria-label="NF-Blaze — לראש העמוד">
+          <svg class="brand-mark" aria-hidden="true"><use href="#i-brand" /></svg>
+          NF-Blaze
+        </a>
+
+        <div class="nav-links">
+          <a href="#capabilities">יכולות</a>
+          <a href="#how">איך זה עובד</a>
+          <a href="#integrations">חיבורים</a>
+
+          <div class="has-drop">
+            <button class="drop-btn" aria-haspopup="true" aria-expanded="false">
+              מדריכים
+              <span class="chev" aria-hidden="true"></span>
+            </button>
+            <div class="drop">
+              <a href="guides/">
+                <svg class="ic" aria-hidden="true"><use href="#i-key" /></svg>
+                <span>
+                  כל המדריכים
+                  <small>איך מחברים מודל למערכת</small>
+                </span>
+              </a>
+              <a href="guides/chatgpt.html">
+                <svg class="ic" aria-hidden="true"><use href="#i-openai" /></svg>
+                <span>
+                  ChatGPT · OpenAI
+                  <small>השגת מפתח API והגדרתו</small>
+                </span>
+              </a>
+              <a href="guides/gemini.html">
+                <svg class="ic ic-solid" aria-hidden="true"><use href="#i-gemini" /></svg>
+                <span>
+                  Google Gemini
+                  <small>השגת מפתח API והגדרתו</small>
+                </span>
+              </a>
+              <a href="guides/claude.html">
+                <svg class="ic" aria-hidden="true"><use href="#i-claude" /></svg>
+                <span>
+                  Anthropic Claude
+                  <small>השגת מפתח API והגדרתו</small>
+                </span>
+              </a>
+            </div>
+          </div>
+
+          <a href="#security">אבטחה</a>
+          <a href="#faq">שאלות</a>
+          <a href="#download">הורדה</a>
+        </div>
+
+        <a class="btn btn-primary nav-cta" href="#license">
+          <svg class="ic" aria-hidden="true"><use href="#i-key" /></svg>
+          בקשת רישיון
+        </a>
+
+        <button class="nav-toggle" id="navToggle" aria-label="תפריט" aria-expanded="false">
+          <svg class="ic" aria-hidden="true"><use href="#i-menu" /></svg>
+        </button>
+      </div>
+    </nav>
+
+    <div class="mobile-menu" id="mobileMenu">
+      <a href="#capabilities">יכולות</a>
+      <a href="#how">איך זה עובד</a>
+      <a href="#integrations">חיבורים</a>
+      <a href="#security">אבטחה ופרטיות</a>
+      <a href="#download">הורדה</a>
+      <a href="#faq">שאלות נפוצות</a>
+
+      <div class="menu-group">מדריכים · חיבור מודל למערכת</div>
+      <a class="sub" href="guides/chatgpt.html">
+        <svg class="ic" aria-hidden="true"><use href="#i-openai" /></svg>
+        ChatGPT · OpenAI
+      </a>
+      <a class="sub" href="guides/gemini.html">
+        <svg class="ic ic-solid" aria-hidden="true"><use href="#i-gemini" /></svg>
+        Google Gemini
+      </a>
+      <a class="sub" href="guides/claude.html">
+        <svg class="ic" aria-hidden="true"><use href="#i-claude" /></svg>
+        Anthropic Claude
+      </a>
+      <a class="btn btn-primary" href="#license">
+        <svg class="ic" aria-hidden="true"><use href="#i-key" /></svg>
+        בקשת רישיון
+      </a>
+    </div>
+
+    <main id="top">
+      <!-- ================= HERO ================= -->
+      <section class="hero">
+        <div class="aurora" aria-hidden="true">
+          <div class="blob blob-1"></div>
+          <div class="blob blob-2"></div>
+          <div class="blob blob-3"></div>
+        </div>
+        <div class="embers" id="embers" aria-hidden="true"></div>
+
+        <div class="wrap">
+          <div class="hero-grid">
+            <div class="reveal in">
+              <span class="eyebrow">
+                <svg class="ic ic-solid" style="width: 14px; height: 14px" aria-hidden="true">
+                  <use href="#i-spark" />
+                </svg>
+                תוכנת דסקטופ · עברית מלאה · מקומית
+              </span>
+
+              <h1>
+                תאר בעברית מה לבנות —<br />
+                <span class="text-glow">והמערכת בונה את זה.</span>
+              </h1>
+
+              <p class="lead">
+                NF-Blaze היא סביבת פיתוח עם AI שרצה על המחשב שלך. הסוכן כותב קבצים אמיתיים
+                בפרויקט, מריץ את האפליקציה, מתקן שגיאות שהוא עצמו מגלה, ומפרסם לאוויר — והקוד,
+                המפתחות והפרויקטים לא עוזבים את המחשב.
+              </p>
+
+              <div class="hero-cta">
+                <a class="btn btn-primary btn-lg" href="#license">
+                  <svg class="ic" aria-hidden="true"><use href="#i-key" /></svg>
+                  בקשת רישיון
+                </a>
+                <a class="btn btn-lg" href="#download">
+                  <svg class="ic" aria-hidden="true"><use href="#i-download" /></svg>
+                  להורדה
+                </a>
+              </div>
+
+              <div class="hero-note">
+                <span>
+                  <svg class="ic" aria-hidden="true"><use href="#i-check" /></svg>
+                  ללא sandbox בענן
+                </span>
+                <span>
+                  <svg class="ic" aria-hidden="true"><use href="#i-check" /></svg>
+                  Windows
+                </span>
+                <span>
+                  <svg class="ic" aria-hidden="true"><use href="#i-check" /></svg>
+                  ממשק RTL מלא
+                </span>
+              </div>
+            </div>
+
+            <!-- חלון «הסוכן עובד» — מודגם, לא צילום מסך -->
+            <div class="console reveal in" data-d="2" aria-hidden="true">
+              <div class="console-bar">
+                <span class="dot" style="background: #e85d5d"></span>
+                <span class="dot" style="background: #e8a04a"></span>
+                <span class="dot" style="background: #3dba7e"></span>
+                <span class="console-title">NF-Blaze — סוכן</span>
+              </div>
+              <div class="console-body" id="consoleBody"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= רצועת חיבורים ================= -->
+      <div class="strip">
+        <div class="wrap">
+          <div class="strip-label">מתחבר למה שאתה כבר עובד איתו</div>
+          <span class="strip-item">
+            <svg class="ic" aria-hidden="true"><use href="#i-github" /></svg> GitHub
+          </span>
+          <span class="strip-item">
+            <svg class="ic" aria-hidden="true"><use href="#i-supabase" /></svg> Supabase
+          </span>
+          <span class="strip-item">
+            <svg class="ic" aria-hidden="true"><use href="#i-vercel" /></svg> Vercel
+          </span>
+          <span class="strip-item">
+            <svg class="ic" aria-hidden="true"><use href="#i-plug" /></svg> שרתי MCP
+          </span>
+          <span class="strip-item">
+            <svg class="ic" aria-hidden="true"><use href="#i-chip" /></svg> כל ספק מודלים
+          </span>
+        </div>
+      </div>
+
+      <!-- ================= איך זה עובד ================= -->
+      <section id="how">
+        <div class="wrap">
+          <div class="section-head reveal">
+            <span class="eyebrow">התהליך</span>
+            <h2>ארבעה שלבים, בלי לצאת מהחלון</h2>
+            <p class="lead">
+              אין העתקה של קוד מצ׳אט לעורך, ואין העלאה של הפרויקט לענן זר. הכל קורה בתוך תיקיית
+              הפרויקט שלך.
+            </p>
+          </div>
+
+          <div class="steps">
+            <div class="step reveal" data-d="1">
+              <div class="step-num">1</div>
+              <h3>מתארים בעברית</h3>
+              <p>
+                בוחרים תיקייה ומתארים מה לבנות. הסוכן שואל שאלות הבהרה כשמשהו לא ברור, במקום
+                לנחש ולבנות דבר שגוי.
+              </p>
+            </div>
+            <div class="step reveal" data-d="2">
+              <div class="step-num">2</div>
+              <h3>הסוכן בונה</h3>
+              <p>
+                נכתבת תוכנית בשלבים, ואז קבצים אמיתיים בדיסק. כל כתיבה עוברת אימות מקדים, והתקדמות
+                מוצגת בזמן אמת.
+              </p>
+            </div>
+            <div class="step reveal" data-d="3">
+              <div class="step-num">3</div>
+              <h3>רואים ומכוונים</h3>
+              <p>
+                תצוגה מקדימה חיה בתוך התוכנה. לוחצים על אלמנט במסך — והסוכן יודע בדיוק על מה
+                מדובר, בלי להסביר איפה זה בקוד.
+              </p>
+            </div>
+            <div class="step reveal" data-d="4">
+              <div class="step-num">4</div>
+              <h3>מפרסמים</h3>
+              <p>
+                מסד נתונים ב-Supabase, קוד ל-GitHub, אתר חי ב-Vercel — הכל מתוך המערכת, אחרי סריקת
+                אבטחה.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= יכולות ================= -->
+      <section id="capabilities">
+        <div class="wrap">
+          <div class="section-head reveal">
+            <span class="eyebrow">יכולות</span>
+            <h2>מה שמפריד בין דמו לכלי עבודה</h2>
+            <p class="lead">
+              קל לייצר קוד. הקושי הוא לשמור על פרויקט שממשיך לעבוד אחרי השינוי החמישים. אלה
+              המנגנונים שעוסקים בדיוק בזה.
+            </p>
+          </div>
+
+          <div class="cards cards-3">
+            <article class="card reveal" data-d="1">
+              <div class="card-ic">
+                <svg class="ic" aria-hidden="true"><use href="#i-agent" /></svg>
+              </div>
+              <h3>סוכן שמתקן את עצמו</h3>
+              <p>
+                אחרי סבב כתיבה הסוכן מריץ בדיקת טיפוסים ומתקן שגיאות שהוא עצמו יצר. הוא לא מכריז
+                «סיימתי» לפני שהקריטריונים שהגדיר מתקיימים.
+              </p>
+            </article>
+
+            <article class="card reveal" data-d="2">
+              <div class="card-ic">
+                <svg class="ic" aria-hidden="true"><use href="#i-pulse" /></svg>
+              </div>
+              <h3>בסיס ירוק</h3>
+              <p>
+                המערכת זוכרת את המצב האחרון שבו האפליקציה עבדה, ומשווה אליו אחרי כל שינוי. אם משהו
+                נשבר — זה נאמר לך, ולא מתגלה שבוע אחר כך.
+              </p>
+            </article>
+
+            <article class="card reveal" data-d="3">
+              <div class="card-ic">
+                <svg class="ic" aria-hidden="true"><use href="#i-graph" /></svg>
+              </div>
+              <h3>מפת פרויקט וניתוח השפעה</h3>
+              <p>
+                גרף הייבוא של הפרויקט מנותח כדי לדעת מה עלול להישבר משינוי נתון. כך הסוכן מסתכל על
+                הקבצים הנכונים במקום לקרוא הכל.
+              </p>
+            </article>
+
+            <article class="card reveal" data-d="1">
+              <div class="card-ic">
+                <svg class="ic" aria-hidden="true"><use href="#i-select" /></svg>
+              </div>
+              <h3>בורר אלמנטים חי</h3>
+              <p>
+                לוחצים על כפתור בתצוגה המקדימה ואומרים «תעשה אותו גדול יותר». הסוכן מקבל את
+                האלמנט המדויק — עובד גם בפרויקטים שיובאו מבחוץ.
+              </p>
+            </article>
+
+            <article class="card reveal" data-d="2">
+              <div class="card-ic">
+                <svg class="ic" aria-hidden="true"><use href="#i-layers" /></svg>
+              </div>
+              <h3>נקודות שחזור</h3>
+              <p>
+                לפני שינויים נשמר מצב הפרויקט. אפשר לראות בדיוק מה השתנה בכל קובץ ולחזור אחורה
+                בלחיצה, בלי להסתמך על git.
+              </p>
+            </article>
+
+            <article class="card reveal" data-d="3">
+              <div class="card-ic">
+                <svg class="ic" aria-hidden="true"><use href="#i-memory" /></svg>
+              </div>
+              <h3>זיכרון פרויקט</h3>
+              <p>
+                החלטות, מוסכמות וטעויות שכבר תוקנו נשמרות בתוך הפרויקט — כך שהסוכן לא חוזר על אותה
+                טעות בשיחה הבאה.
+              </p>
+            </article>
+
+            <article class="card reveal" data-d="1">
+              <div class="card-ic">
+                <svg class="ic" aria-hidden="true"><use href="#i-plan" /></svg>
+              </div>
+              <h3>תוכנית בנייה בשלבים</h3>
+              <p>
+                משימה גדולה נשברת לשלבים עם קריטריוני קבלה. אתה רואה מה נעשה, מה בתור, ומה נשאר —
+                במקום קיר טקסט אחד.
+              </p>
+            </article>
+
+            <article class="card reveal" data-d="2">
+              <div class="card-ic">
+                <svg class="ic" aria-hidden="true"><use href="#i-terminal" /></svg>
+              </div>
+              <h3>טרמינל וסביבת ריצה מובנית</h3>
+              <p>
+                ‏Node ו-npm ארוזים בתוך ההתקנה — אין «קודם תתקין סביבת פיתוח». הרצת פקודות מתבצעת
+                בשכבה מבוקרת בתוך הפרויקט.
+              </p>
+            </article>
+
+            <article class="card reveal" data-d="3">
+              <div class="card-ic">
+                <svg class="ic" aria-hidden="true"><use href="#i-plug" /></svg>
+              </div>
+              <h3>שרתי MCP</h3>
+              <p>
+                מחברים כלים חיצוניים (Model Context Protocol) והסוכן מקבל אותם ככלים לכל דבר.
+                פורמט ההגדרה זהה ל-Claude Desktop — אפשר להדביק קונפיג קיים.
+              </p>
+            </article>
+
+            <article class="card reveal" data-d="1">
+              <div class="card-ic">
+                <svg class="ic" aria-hidden="true"><use href="#i-rtl" /></svg>
+              </div>
+              <h3>עברית נאכפת, לא מומלצת</h3>
+              <p>
+                מודלים כותבים רגלית: ‏<code>ml-4</code>, ‏<code>text-left</code>, ‏<code>rounded-l</code>
+                — וזה שובר עברית. כאן כתיבה כזו <strong>נדחית לפני שהיא מגיעה לדיסק</strong>,
+                עם התיקון הלוגי הנכון.
+              </p>
+            </article>
+
+            <article class="card reveal" data-d="2">
+              <div class="card-ic">
+                <svg class="ic" aria-hidden="true"><use href="#i-key" /></svg>
+              </div>
+              <h3>אמון מדורג</h3>
+              <p>
+                בהתחלה אתה מאשר כל שינוי. אחרי אישורים רצופים הסוכן מקבל אוטונומיה לשינויים
+                קטנים — ודחייה אחת מאפסת אותה. אישור נצבר, ולא נדלק בהגדרות.
+              </p>
+            </article>
+
+            <article class="card reveal" data-d="3">
+              <div class="card-ic">
+                <svg class="ic" aria-hidden="true"><use href="#i-preview" /></svg>
+              </div>
+              <h3>בדיקה בדפדפן אמיתי</h3>
+              <p>
+                אחרי בנייה משמעותית האפליקציה נפתחת בדפדפן פנימי, נלחצת ונבדקת — כולל איתור מסך
+                לבן ושגיאות ריצה שלא מופיעות בקוד.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= חיבורים ================= -->
+      <section id="integrations">
+        <div class="aurora" aria-hidden="true"><div class="blob blob-3"></div></div>
+        <div class="wrap" style="position: relative; z-index: 1">
+          <div class="section-head reveal">
+            <span class="eyebrow">חיבורים</span>
+            <h2>מחובר למה שאתה כבר עובד איתו</h2>
+            <p class="lead">
+              ‏GitHub ו-Supabase מתחברים בלחיצה אחת: לוחצים «התחבר», מאשרים בדף של הספק עצמו,
+              וחוזרים. בלי להנפיק טוקנים ובלי להדביק מפתחות לשדות.
+            </p>
+          </div>
+
+          <div class="integ">
+            <article class="integ-card reveal" data-d="1">
+              <div class="integ-head">
+                <svg class="ic" aria-hidden="true"><use href="#i-github" /></svg>
+                <h3>GitHub</h3>
+              </div>
+              <p>ניהול הקוד — מהפרויקט הראשון ועד סקירת שינויים.</p>
+              <ul>
+                <li>
+                  <svg class="ic" aria-hidden="true"><use href="#i-check" /></svg>
+                  יצירת ריפוזיטורי פרטי חדש והעלאת הקוד אליו
+                </li>
+                <li>
+                  <svg class="ic" aria-hidden="true"><use href="#i-check" /></svg>
+                  פרסום לענף חדש בלי לגעת בראשי — נוח ל-Pull Request
+                </li>
+                <li>
+                  <svg class="ic" aria-hidden="true"><use href="#i-check" /></svg>
+                  ייבוא פרויקט קיים: בוחרים מרשימת הריפוזיטוריז שלך, כולל פרטיים
+                </li>
+                <li>
+                  <svg class="ic" aria-hidden="true"><use href="#i-check" /></svg>
+                  הסוכן יודע לפרסם בעצמו כשמבקשים ממנו בצ׳אט
+                </li>
+              </ul>
+            </article>
+
+            <article class="integ-card reveal" data-d="2">
+              <div class="integ-head">
+                <svg class="ic" aria-hidden="true"><use href="#i-supabase" /></svg>
+                <h3>Supabase</h3>
+              </div>
+              <p>מסד נתונים, אימות משתמשים ואחסון — מוכנים לעבודה.</p>
+              <ul>
+                <li>
+                  <svg class="ic" aria-hidden="true"><use href="#i-check" /></svg>
+                  בוחרים פרויקט מרשימה — הכתובת והמפתחות נמשכים אוטומטית לקובצי הסביבה
+                </li>
+                <li>
+                  <svg class="ic" aria-hidden="true"><use href="#i-check" /></svg>
+                  הסוכן מריץ SQL ישירות: יצירת טבלאות, אינדקסים ומדיניות RLS
+                </li>
+                <li>
+                  <svg class="ic" aria-hidden="true"><use href="#i-check" /></svg>
+                  פריסת Edge Functions ללוגיקת שרת שאסור שתרוץ בדפדפן
+                </li>
+                <li>
+                  <svg class="ic" aria-hidden="true"><use href="#i-check" /></svg>
+                  פעולה מוחקת נתונים נעצרת עד לאישור מפורש שלך בצ׳אט
+                </li>
+              </ul>
+            </article>
+
+            <article class="integ-card reveal" data-d="3">
+              <div class="integ-head">
+                <svg class="ic" aria-hidden="true"><use href="#i-vercel" /></svg>
+                <h3>Vercel</h3>
+              </div>
+              <p>מהמחשב שלך לכתובת חיה באינטרנט.</p>
+              <ul>
+                <li>
+                  <svg class="ic" aria-hidden="true"><use href="#i-check" /></svg>
+                  <strong>פרסום מיידי בלי חשבון Vercel בכלל</strong> — מקבלים כתובת חיה בלחיצה
+                </li>
+                <li>
+                  <svg class="ic" aria-hidden="true"><use href="#i-check" /></svg>
+                  קישור העברת בעלות (Claim) להעברת האתר לחשבון שלך, חינם
+                </li>
+                <li>
+                  <svg class="ic" aria-hidden="true"><use href="#i-check" /></svg>
+                  יש לך חשבון? פרסום ישיר אליו, לפרויקט חדש או קיים
+                </li>
+                <li>
+                  <svg class="ic" aria-hidden="true"><use href="#i-check" /></svg>
+                  נכשלה בנייה? לוג הבנייה מתורגם לעברית והסוכן מציע לתקן
+                </li>
+              </ul>
+            </article>
+          </div>
+
+          <div class="oauth-note reveal">
+            <svg class="ic" aria-hidden="true"><use href="#i-shield" /></svg>
+            <p>
+              <strong>איך החיבור עובד מתחת למכסה:</strong> המערכת פותחת את דף האישור של הספק
+              בדפדפן שלך. הטוקן שחוזר <strong>אינו עובר בכתובת שהדפדפן רואה</strong> — הוא מוצפן
+              בדרך ונפתח רק במחשב שלך, שם הוא נשמר דרך מנגנון ההצפנה של מערכת ההפעלה. אפשר לבטל
+              את ההרשאה בכל רגע מהדשבורד של הספק, ולמי שמעדיף — נשארה גם אפשרות להזין טוקן ידנית
+              בכל אחד משלושת החיבורים.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= אבטחה ופרטיות ================= -->
+      <section id="security">
+        <div class="wrap">
+          <div class="split">
+            <div class="reveal">
+              <span class="eyebrow">אבטחה ופרטיות</span>
+              <h2>הקוד שלך נשאר שלך</h2>
+              <p class="lead">
+                אין sandbox מרוחק ואין מסד נתונים בענן שמחזיק את הפרויקטים שלך. מה שיוצא החוצה
+                מהמחשב זו הפנייה למודל השפה בלבד — ורק כשאתה מבקש משהו.
+              </p>
+              <p class="lead">
+                מפתחות ה-API נשמרים מוצפנים דרך מנגנון ההצפנה של מערכת ההפעלה, ולא בקובץ טקסט.
+              </p>
+            </div>
+
+            <div class="facts">
+              <div class="fact reveal" data-d="1">
+                <svg class="ic" aria-hidden="true"><use href="#i-local" /></svg>
+                <div>
+                  <h3>הכל מקומי</h3>
+                  <p>
+                    הפרויקטים יושבים בתיקייה שאתה בוחר על הדיסק. אפשר לפתוח אותם בכל עורך אחר, בכל
+                    רגע — אין נעילה לפורמט של המערכת.
+                  </p>
+                </div>
+              </div>
+
+              <div class="fact reveal" data-d="2">
+                <svg class="ic" aria-hidden="true"><use href="#i-shield" /></svg>
+                <div>
+                  <h3>סריקת אבטחה לפני פרסום</h3>
+                  <p>
+                    לפני העלאה לאוויר הפרויקט נסרק. אם נמצא מפתח סודי שנחשף לצד הלקוח או טבלה בלי
+                    הגנת גישה — הפרסום נעצר, עם הסבר מה נמצא ולמה זה מסוכן.
+                  </p>
+                </div>
+              </div>
+
+              <div class="fact reveal" data-d="3">
+                <svg class="ic" aria-hidden="true"><use href="#i-db" /></svg>
+                <div>
+                  <h3>בלמים על פעולות הרסניות</h3>
+                  <p>
+                    מחיקת טבלה או נתונים לא מתבצעת בשקט: הסוכן חייב להסביר מה עומד להימחק ולקבל
+                    ממך אישור מפורש לפני שזה קורה.
+                  </p>
+                </div>
+              </div>
+
+              <div class="fact reveal" data-d="4">
+                <svg class="ic" aria-hidden="true"><use href="#i-key" /></svg>
+                <div>
+                  <h3>הגנה על ההתקנה עצמה</h3>
+                  <p>
+                    קוד המערכת מקומפל ונעול בהתקנה, עם אימות שלמות. הרישוי חתום קריפטוגרפית ומאומת
+                    גם מול השרת — עם חלון עבודה אופליין.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= מודלים ================= -->
+      <section id="models">
+        <div class="wrap">
+          <div class="split">
+            <div class="reveal">
+              <span class="eyebrow">מודלים</span>
+              <h2>המודל הוא שלך, לא שלנו</h2>
+              <p class="lead">
+                מחברים מפתח API של הספק שאתה בוחר, ומחליפים מודל מתי שרוצים. אין תיווך ואין
+                מנוי חודשי על שימוש במודל — אתה משלם לספק ישירות, לפי מה שצרכת.
+              </p>
+              <div class="chips">
+                <span class="chip">
+                  <svg class="ic" aria-hidden="true"><use href="#i-chip" /></svg> Google Gemini
+                </span>
+                <span class="chip">
+                  <svg class="ic" aria-hidden="true"><use href="#i-chip" /></svg> Anthropic Claude
+                </span>
+                <span class="chip">
+                  <svg class="ic" aria-hidden="true"><use href="#i-chip" /></svg> OpenAI
+                </span>
+                <span class="chip">
+                  <svg class="ic" aria-hidden="true"><use href="#i-chip" /></svg> OpenRouter
+                </span>
+                <span class="chip">
+                  <svg class="ic" aria-hidden="true"><use href="#i-chip" /></svg> Ollama · מקומי
+                </span>
+                <span class="chip">
+                  <svg class="ic" aria-hidden="true"><use href="#i-chip" /></svg> LM Studio · מקומי
+                </span>
+              </div>
+            </div>
+
+            <div class="facts">
+              <div class="fact reveal" data-d="1">
+                <svg class="ic" aria-hidden="true"><use href="#i-rtl" /></svg>
+                <div>
+                  <h3>עברית מלאה, לא תרגום</h3>
+                  <p>
+                    הממשק, ההודעות, שגיאות הבנייה ואפילו מסך ההתקנה — עברית ו-RTL אמיתי. גם
+                    האפליקציות שהסוכן בונה נבנות מראש עם תמיכה בעברית.
+                  </p>
+                </div>
+              </div>
+              <div class="fact reveal" data-d="2">
+                <svg class="ic" aria-hidden="true"><use href="#i-edge" /></svg>
+                <div>
+                  <h3>לוגיקת שרת אמיתית</h3>
+                  <p>
+                    כשצריך מפתח סודי או webhook, הסוכן לא דוחף אותו לקוד הדפדפן — הוא פורס פונקציית
+                    שרת, והקוד נשמר גם בפרויקט שלך.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= הורדה ================= -->
+      <section id="download">
+        <div class="wrap">
+          <div class="download-box reveal">
+            <div class="card-ic" style="margin-inline: auto">
+              <svg class="ic" aria-hidden="true"><use href="#i-download" /></svg>
+            </div>
+            <h2>מוכן להתקנה</h2>
+            <p class="lead">
+              מתקין אחד ל-Windows, בעברית מלאה ובכיוון RTL. סביבת הריצה ארוזה בפנים — אין מה
+              להתקין לפני. ההפעלה דורשת מפתח רישיון.
+            </p>
+            <a class="btn btn-primary btn-lg" id="dlBtn" href="#license">
+              <svg class="ic" aria-hidden="true"><use href="#i-download" /></svg>
+              הורד את NF-Blaze
+            </a>
+            <div class="dl-meta">
+              <span id="dlVersion"></span>
+              <span>
+                <svg class="ic" aria-hidden="true"><use href="#i-check" /></svg>
+                Windows 10 / 11
+              </span>
+              <span>
+                <svg class="ic" aria-hidden="true"><use href="#i-check" /></svg>
+                התקנה למשתמש — בלי הרשאות מנהל
+              </span>
+              <span>
+                <svg class="ic" aria-hidden="true"><use href="#i-check" /></svg>
+                כולל Node 22 ו-npm
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= בקשת רישיון ================= -->
+      <section id="license">
+        <div class="wrap">
+          <div class="split">
+            <div class="reveal">
+              <span class="eyebrow">
+                <svg class="ic ic-solid" style="width: 14px; height: 14px" aria-hidden="true">
+                  <use href="#i-spark" />
+                </svg>
+                בקשת רישיון
+              </span>
+              <h2>נשמח לשמוע מה אתה בונה</h2>
+              <p class="lead">
+                NF-Blaze מופצת עם מפתח רישיון אישי. השאר פרטים —
+                <strong style="color: var(--text)">המפתח יישלח אליך במייל תוך 48 שעות</strong>,
+                יחד עם הנחיות התקנה.
+              </p>
+              <p class="lead">
+                מעדיף לכתוב ישירות?
+                <a href="mailto:Info@nf-blaze.dev">Info@nf-blaze.dev</a>
+              </p>
+
+              <div class="facts" style="margin-top: 24px">
+                <div class="fact">
+                  <svg class="ic" aria-hidden="true"><use href="#i-mail" /></svg>
+                  <div>
+                    <h3>לשאלות ותמיכה</h3>
+                    <p><a href="mailto:Info@nf-blaze.dev">Info@nf-blaze.dev</a></p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-card reveal" data-d="2">
+              <form id="licenseForm" class="form-grid" novalidate>
+                <div class="form-row-2">
+                  <div class="field">
+                    <label for="f-name">שם מלא <span class="req">*</span></label>
+                    <input class="input" id="f-name" name="name" type="text" autocomplete="name"
+                      required maxlength="120" placeholder="ישראל ישראלי" />
+                  </div>
+                  <div class="field">
+                    <label for="f-email">אימייל <span class="req">*</span></label>
+                    <input class="input" id="f-email" name="email" type="email" inputmode="email"
+                      autocomplete="email" required maxlength="200" placeholder="you@example.com"
+                      style="direction: ltr; text-align: left" />
+                  </div>
+                </div>
+
+                <div class="field">
+                  <label for="f-source">איך הגעת אלינו? <span class="req">*</span></label>
+                  <select class="input select-field" id="f-source" name="source" required>
+                    <option value="" selected disabled>בחר…</option>
+                    <option value="facebook">פייסבוק</option>
+                    <option value="google">גוגל</option>
+                    <option value="referral">המלצה</option>
+                    <option value="other">אחר</option>
+                  </select>
+                </div>
+
+                <div class="field">
+                  <label for="f-message">מה תרצה לבנות? <span class="req">*</span></label>
+                  <textarea class="input" id="f-message" name="message" required maxlength="2000"
+                    placeholder="ספר בכמה משפטים — זה עוזר לנו להתאים את ההנחיות"></textarea>
+                </div>
+
+                <!-- מלכודת בוטים -->
+                <div class="hp" aria-hidden="true">
+                  <label for="f-website">אל תמלא שדה זה</label>
+                  <input id="f-website" name="website" type="text" tabindex="-1"
+                    autocomplete="off" />
+                </div>
+
+                <div class="form-note">
+                  <svg class="ic" aria-hidden="true"><use href="#i-clock" /></svg>
+                  <p>
+                    <strong>מפתח הרישיון יישלח אליך במייל תוך 48 שעות.</strong>
+                    ודא שהכתובת שהזנת נכונה, ובדוק גם בתיקיית הספאם.
+                  </p>
+                </div>
+
+                <p class="form-msg" id="formMsg" role="status" aria-live="polite"></p>
+
+                <button class="btn btn-primary btn-lg" id="submitBtn" type="submit">
+                  <svg class="ic" aria-hidden="true"><use href="#i-key" /></svg>
+                  <span id="submitLabel">שלח בקשה</span>
+                </button>
+
+                <!-- הודעה לפי סעיף 11 לחוק הגנת הפרטיות — חייבת להופיע
+                     במקום האיסוף עצמו, לא רק בעמוד נפרד. -->
+                <p class="form-foot">
+                  מסירת הפרטים היא <strong>מרצון ואינה חובה חוקית</strong>; בלעדיהם לא נוכל
+                  לטפל בבקשה ולשלוח מפתח. הפרטים נאספים לצורך טיפול בבקשת הרישיון ויצירת קשר
+                  בלבד, נשמרים אצל <strong>[[שם בעל העסק — למלא]]</strong>
+                  (<a href="mailto:Info@nf-blaze.dev">Info@nf-blaze.dev</a>) ומאוחסנים בשרתים
+                  באיחוד האירופי. <strong>לא נשלח דיוור שיווקי</strong> ולא נעביר את הפרטים לאף
+                  גורם. עומדות לך זכות עיון וזכות לתיקון או מחיקה של המידע.
+                  <a href="/privacy.html">מדיניות הפרטיות המלאה</a> ·
+                  <a href="/terms.html">תקנון</a>
+                </p>
+              </form>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= שאלות נפוצות ================= -->
+      <section id="faq">
+        <div class="wrap">
+          <div class="section-head reveal">
+            <span class="eyebrow">שאלות נפוצות</span>
+            <h2>מה שבדרך כלל שואלים</h2>
+          </div>
+
+          <div class="faq">
+            <details class="reveal">
+              <summary>הקוד שלי נשלח לענן?</summary>
+              <p>
+                הפרויקטים והמפתחות נשמרים על המחשב שלך. מה שיוצא החוצה זו הפנייה למודל השפה שבחרת
+                — בדיוק כמו בכל כלי AI — והיא כוללת את ההקשר שנדרש למשימה. אין sandbox מרוחק ואין
+                עותק של הפרויקט אצלנו.
+              </p>
+            </details>
+
+            <details class="reveal">
+              <summary>צריך לדעת לתכנת?</summary>
+              <p>
+                לא כדי להתחיל. מתארים בעברית ומקבלים אפליקציה עובדת, ומכוונים אותה על ידי לחיצה על
+                אלמנטים בתצוגה. מי שכן יודע לתכנת מקבל עורך קוד, טרמינל, git ושליטה מלאה בקבצים.
+              </p>
+            </details>
+
+            <details class="reveal">
+              <summary>אני משלם על השימוש במודל?</summary>
+              <p>
+                אתה מחבר מפתח API של הספק שאתה בוחר ומשלם לו ישירות לפי צריכה. NF-Blaze לא מתווכת
+                את החיוב ולא מוסיפה עמלה. אפשר גם להריץ מודל מקומי דרך Ollama או LM Studio ולא
+                לשלם על שימוש כלל.
+              </p>
+            </details>
+
+            <details class="reveal">
+              <summary>אפשר להביא פרויקט קיים?</summary>
+              <p>
+                כן — אפשר לייבא תיקייה מהמחשב או לשכפל ריפוזיטורי מ-GitHub ולבחור אותו מרשימה. גם
+                פרויקטים שנוצרו בכלים אחרים נתמכים, כולל התצוגה המקדימה ובורר האלמנטים.
+              </p>
+            </details>
+
+            <details class="reveal">
+              <summary>מה קורה אם הסוכן שובר משהו?</summary>
+              <p>
+                נשמרות נקודות שחזור לפני שינויים, אפשר לראות בדיוק אילו שורות השתנו בכל קובץ
+                ולחזור אחורה בלחיצה. בנוסף, המערכת משווה את מצב האפליקציה למצב התקין האחרון ומדווחת
+                אם משהו נשבר.
+              </p>
+            </details>
+
+            <details class="reveal">
+              <summary>על אילו מערכות הפעלה זה רץ?</summary>
+              <p>
+                כרגע Windows 10 ו-11. ההתקנה היא ברמת המשתמש ואינה דורשת הרשאות מנהל, וסביבת
+                הריצה (Node ו-npm) ארוזה בתוך ההתקנה.
+              </p>
+            </details>
+
+            <details class="reveal">
+              <summary>איך מקבלים רישיון?</summary>
+              <p>
+                ממלאים את הטופס בעמוד או כותבים ל-Info@nf-blaze.dev. הרישיון אישי, מאומת
+                קריפטוגרפית, וממשיך לעבוד גם כשאין אינטרנט — בתוך חלון זמן מוגדר.
+              </p>
+            </details>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="wrap">
+        <div class="foot-grid">
+          <div>
+            <a class="brand" href="#top">
+              <svg class="brand-mark" aria-hidden="true"><use href="#i-brand" /></svg>
+              NF-Blaze
+            </a>
+            <p>
+              סביבת פיתוח עם AI בעברית, שרצה על המחשב שלך. הקוד, המפתחות והפרויקטים נשארים אצלך.
+            </p>
+          </div>
+
+          <div class="foot-col">
+            <h3>העמוד</h3>
+            <a href="#capabilities">יכולות</a>
+            <a href="#how">איך זה עובד</a>
+            <a href="#integrations">חיבורים</a>
+            <a href="#security">אבטחה ופרטיות</a>
+            <a href="#faq">שאלות נפוצות</a>
+          </div>
+
+          <div class="foot-col">
+            <h3>מדריכים</h3>
+            <a href="guides/chatgpt.html">חיבור ChatGPT · OpenAI</a>
+            <a href="guides/gemini.html">חיבור Google Gemini</a>
+            <a href="guides/claude.html">חיבור Anthropic Claude</a>
+            <a href="guides/">כל המדריכים</a>
+          </div>
+          <div class="foot-col">
+            <h3>מידע משפטי</h3>
+            <a href="/privacy.html">מדיניות פרטיות</a>
+            <a href="/terms.html">תקנון ותנאי שימוש</a>
+            <a href="/accessibility.html">הצהרת נגישות</a>
+          </div>
+
+
+          <div class="foot-col">
+            <h3>יצירת קשר</h3>
+            <a href="mailto:Info@nf-blaze.dev">Info@nf-blaze.dev</a>
+            <a href="#license">בקשת רישיון</a>
+            <a href="#download">הורדה</a>
+          </div>
+        </div>
+
+        <div class="foot-bottom">
+          <span>© <span id="year">2026</span> NF-Blaze · כל הזכויות שמורות</span>
+          <span>nf-blaze.dev</span>
+        </div>
+      </div>
+    </footer>
+
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+    <script src="a11y.js"></script>
+  </body>
+</html>

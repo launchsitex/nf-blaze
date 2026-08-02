@@ -8,7 +8,7 @@ import { join } from 'path'
 import { getProject } from './storage'
 import { buildPreviewUrl } from './preview-protocol'
 import { assertRuntimeReady, getNpmCommand, getRuntimeSpawnEnv } from './runtime-env'
-import { syncNfSourcePlugin } from './templates'
+import { syncNfSourcePlugin, ensureNfSourceInViteConfig } from './templates'
 
 export type PreviewPhase =
   | 'idle'
@@ -471,6 +471,9 @@ export async function ensureLivePreview(
   // סנכרון ה-plugin של NF-Blaze בפרויקט (בוחר אלמנטים / דיווח שגיאות) לגרסה העדכנית —
   // פרויקטים ישנים קיבלו עותק חד-פעמי ולא היו מקבלים תיקונים בלי זה
   syncNfSourcePlugin(folderPath)
+  // פרויקטים שלא נוצרו ב-NF-Blaze (מיובאים / Dyad) — מזריקים את ה-plugin ל-vite.config
+  // כדי שבורר האלמנטים יעבוד גם בהם. בלי זה הבחירה בתצוגה «לא עושה כלום».
+  ensureNfSourceInViteConfig(folderPath)
 
   const logBuf: string[] = []
 

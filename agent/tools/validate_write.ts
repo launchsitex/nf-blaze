@@ -11,6 +11,8 @@ import {
   listDirFilenames,
   lookupComponent
 } from './component_index'
+import { assertDesignSystem } from './design_rules'
+import type { ToolSession } from './session'
 
 const BUILTIN_OR_SPECIAL = new Set([
   'react',
@@ -223,7 +225,8 @@ const CRITICAL_FILE_RE = /^(package\.json|index\.html|vite\.config\.[cm]?[jt]s|t
 export function assertWritableContent(
   rootDir: string,
   fileRelPath: string,
-  content: string
+  content: string,
+  session?: ToolSession
 ): void {
   const fromAbs = resolve(rootDir, fileRelPath.replace(/\//g, sep))
 
@@ -261,6 +264,10 @@ export function assertWritableContent(
       throw new ToolError('package.json חייב להיות JSON תקין', 'invalid_json')
     }
   }
+
+  // 0.5) מערכת עיצוב — רק בפרויקט שמגדיר טוקנים, רק בקבצי קומפוננטה,
+  // ולכל היותר פעמיים לקובץ כדי שלא ייווצר מבוי סתום
+  assertDesignSystem(rootDir, fileRelPath, content, session)
 
   const installed = loadPackageNames(rootDir)
   const imports = parseImports(content)

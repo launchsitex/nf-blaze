@@ -1,5 +1,9 @@
 /**
- * Playwright session — headed Chromium so the user can see the browser.
+ * Playwright session — headless תמיד.
+ *
+ * ההתקנה אורזת רק את ה-headless shell (≈270MB). Chromium המלא היה
+ * מוסיף ≈415MB נוספים למתקין רק כדי שאפשר יהיה לראות חלון נפתח —
+ * מחיר שלא שווה את זה לבדיקה שרצה ברקע.
  */
 import { mkdirSync } from 'fs'
 import { join } from 'path'
@@ -17,14 +21,14 @@ export type BrowserSession = {
 export async function openBrowserSession(opts: {
   baseUrl: string
   rootDir: string
+  /** נשמר לתאימות; ההרצה תמיד headless בגלל הדפדפן המצורף */
   headed?: boolean
 }): Promise<BrowserSession> {
   const screenshotsDir = join(opts.rootDir, '.nf-blaze', 'browser_qa')
   mkdirSync(screenshotsDir, { recursive: true })
 
   const browser = await chromium.launch({
-    headless: opts.headed === false,
-    // Default: headed — user sees the browser running
+    headless: true,
     args: ['--disable-dev-shm-usage']
   })
 

@@ -1,4 +1,5 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'child_process'
+import { killProcessTree } from '../../../agent/process_tree'
 import { existsSync } from 'fs'
 import type { ShellRunRequest, ShellRunResult } from '../../shared/types'
 import { getProject } from './storage'
@@ -167,11 +168,9 @@ export async function runAllowlistedShell(
     let stderr = ''
 
     const timeout = setTimeout(() => {
-      try {
-        child.kill()
-      } catch {
-        /* ignore */
-      }
+      // עץ שלם: `shell: true` ב-Windows מייצר cmd → npm → node.
+      // הריגת ה-cmd לבדה משאירה את npm רץ ברקע לנצח.
+      killProcessTree(child)
       finish({
         ok: false,
         code: 1,
@@ -181,11 +180,7 @@ export async function runAllowlistedShell(
     }, SHELL_TIMEOUT_MS)
 
     const onAbort = (): void => {
-      try {
-        child.kill()
-      } catch {
-        /* ignore */
-      }
+      killProcessTree(child)
     }
     signal?.addEventListener('abort', onAbort)
 

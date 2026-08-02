@@ -6,6 +6,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'child_process'
 import { existsSync, readFileSync } from 'fs'
 import { createServer } from 'net'
 import { join } from 'path'
+import { killProcessTree } from '../process_tree'
 
 export type PreviewHandle = {
   url: string
@@ -118,9 +119,7 @@ export async function ensureQaPreview(
     // Static HTML fallback — file URL not ideal for Playwright; try index.html via simple hint
     const indexHtml = join(rootDir, 'index.html')
     if (existsSync(indexHtml)) {
-      throw new Error(
-        'אין Vite בפרויקט — בדיקת דפדפן דורשת `npm run dev` (Vite) כרגע'
-      )
+      throw new Error('אין Vite בפרויקט — בדיקת דפדפן דורשת `npm run dev` (Vite) כרגע')
     }
     throw new Error('לא נמצאה תצוגה מקדימה להרצה')
   }
@@ -137,7 +136,13 @@ export async function ensureQaPreview(
     ['run', 'dev', '--', '--host', '127.0.0.1', '--port', String(port), '--strictPort'],
     {
       cwd: rootDir,
-      env: { ...(() => { const e: NodeJS.ProcessEnv = { ...process.env, NO_COLOR: '1', BROWSER: 'none' }; delete e.FORCE_COLOR; return e })() },
+      env: {
+        ...(() => {
+          const e: NodeJS.ProcessEnv = { ...process.env, NO_COLOR: '1', BROWSER: 'none' }
+          delete e.FORCE_COLOR
+          return e
+        })()
+      },
       shell: isWin,
       windowsHide: true
     }
@@ -146,22 +151,13 @@ export async function ensureQaPreview(
   try {
     await waitReady(child, url)
   } catch (err) {
-    try {
-      child.kill()
-    } catch {
-      /* ignore */
-    }
+    // עץ שלם — ב-Windows ה-cmd הוא רק העטיפה, vite הוא הנכד
+    killProcessTree(child)
     throw err
   }
 
   return {
     url,
-    stop: () => {
-      try {
-        child.kill()
-      } catch {
-        /* ignore */
-      }
-    }
+    stop: () => killProcessTree(child)
   }
 }

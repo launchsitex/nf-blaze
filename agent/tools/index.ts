@@ -9,6 +9,7 @@ export type {
   ToolSuccess
 } from './types'
 export { ToolError } from './types'
+export { formatToolError, knownErrorCodes } from './errors'
 
 export { TOOL_DEFINITIONS, getToolDefinition } from './schemas'
 export {

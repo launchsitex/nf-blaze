@@ -91,6 +91,30 @@ npm run dist
 להתקנה, ומשתמשי קצה בלי Node מותקן עובדים מהרגע הראשון. התיקייה לא נכנסת ל-git
 (`.gitignore`); בשכפול נקי של הריפו יש להוריד שוב לפי `resources/runtime/README.md`.
 
+## 3.1 Chromium מצורף (בוצע)
+
+`resources/playwright/` מכיל את ה-headless shell של Playwright (~270MB) — בלעדיו
+בדיקת הדפדפן ו«בסיס ירוק» מדלגות בשקט אצל כל לקוח. גם הוא לא בגיט.
+
+**בשכפול נקי, לפני `npm run dist`:**
+
+```bash
+npx playwright install chromium
+```
+
+ואז להעתיק מ-`%LOCALAPPDATA%\ms-playwright` את `chromium_headless_shell-*`
+ואת `winldd-*` אל `resources/playwright/`.
+
+## 3.2 מפתח חתימת הרישיונות (חובה!)
+
+`secrets/license-private.pem` **אינו בגיט**. בלעדיו אי אפשר להנפיק אף רישיון,
+והאפליקציה חוסמת כל לקוח אחרי 14 יום.
+
+- **גבה אותו בכספת.** אובדנו = כל הרישיונות שהונפקו מפסיקים לעבוד.
+- אם מריצים `license:keygen` מחדש — חובה להדביק את המפתח הציבורי החדש
+  ב-`src/shared/license.ts` ולבנות מחדש. טסט ב-`tests/license.test.ts`
+  נכשל אם שכחתם.
+
 ## 4. QA ידני על מחשב נקי — צ'קליסט לפני כל שחרור
 
 מכונה נקייה = VM של Windows בלי Node, בלי כלי פיתוח.

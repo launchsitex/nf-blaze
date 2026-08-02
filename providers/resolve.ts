@@ -3,6 +3,7 @@ import type {
   ToolDefinition,
   UnifiedMessage
 } from './types'
+import { repairToolArguments } from './repair'
 
 export function textMessage(
   role: 'user' | 'assistant',
@@ -101,14 +102,18 @@ export function emptyUsage(): { inputTokens: number; outputTokens: number; total
   return { inputTokens: 0, outputTokens: 0, totalTokens: 0 }
 }
 
+/**
+ * ארגומנטים של קריאת כלי, אחרי תיקון.
+ * Gemini מייצר JSON פגום בשיעור ניכר — בלי תיקון כאן, כל מקרה כזה
+ * הופך לקריאת כלי עם זבל ולסבב מבוזבז.
+ */
 export function parseToolArguments(raw: string): Record<string, unknown> {
   if (!raw?.trim()) return {}
+  const repaired = repairToolArguments(raw)
+  if (repaired.value) return repaired.value
+  // ערך יחיד תקין שאינו אובייקט (נדיר) — נשמר כמו קודם
   try {
-    const parsed = JSON.parse(raw) as unknown
-    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-      return parsed as Record<string, unknown>
-    }
-    return { value: parsed }
+    return { value: JSON.parse(raw) as unknown }
   } catch {
     return { _raw: raw }
   }

@@ -12,12 +12,15 @@ import {
 } from '../providers'
 import {
   executeTool,
+  formatToolError,
+  getToolDefinition,
   listToolDefinitions,
   createToolSession,
   ToolError,
   type ToolContext,
   type ScopeDeclaration
 } from './tools'
+import { coerceArgumentsToSchema } from '../providers'
 import { systemPromptForProject } from './index'
 import {
   resolveWorkMode,
@@ -61,6 +64,12 @@ import {
   maybeCompactContext,
   spillToolResultToDisk
 } from './context_compact'
+import {
+  formatRegressions,
+  runHealthCheck,
+  shouldRunHealthCheck,
+  type Regression
+} from './health'
 import type { McpExternalTool } from './mcp/manager'
 
 export const MAX_AGENT_ITERATIONS = 40
@@ -132,6 +141,8 @@ export interface AgentLoopResult {
   workModeSource?: 'manual' | 'auto'
   /** True when a write tool was attempted while in ASK/PLAN */
   modeBlockedWrites?: boolean
+  /** «בסיס ירוק» — מה שעבד לפני הסבב ונשבר בו (דיווח בלבד) */
+  regressions?: Regression[]
 }
 
 export type AgentLoopEvent =
@@ -215,6 +226,13 @@ export type AgentLoopEvent =
       broken?: string[]
       iteration: number
     }
+  | {
+      type: 'health'
+      phase: 'ok' | 'regressed' | 'skipped'
+      message: string
+      regressions?: Regression[]
+      iteration: number
+    }
   | { type: 'done'; result: AgentLoopResult }
 
 interface TscRepairState {
@@ -237,10 +255,14 @@ function emptyUsage(): Usage {
 }
 
 function addUsage(a: Usage, b: Usage): Usage {
+  const cacheReadTokens = (a.cacheReadTokens ?? 0) + (b.cacheReadTokens ?? 0)
+  const cacheWriteTokens = (a.cacheWriteTokens ?? 0) + (b.cacheWriteTokens ?? 0)
   return {
     inputTokens: a.inputTokens + b.inputTokens,
     outputTokens: a.outputTokens + b.outputTokens,
-    totalTokens: a.totalTokens + b.totalTokens
+    totalTokens: a.totalTokens + b.totalTokens,
+    ...(cacheReadTokens ? { cacheReadTokens } : {}),
+    ...(cacheWriteTokens ? { cacheWriteTokens } : {})
   }
 }
 
@@ -311,6 +333,13 @@ async function runOneTool(
   }
   try {
     let args = toolCall.arguments ?? {}
+    // כשל אופייני של GPT: הכלי הנכון עם שם/טיפוס פרמטר שגוי. מתקנים
+    // רק מה שחד-משמעי, לפני שהכלי נכשל ומבזבז סבב.
+    const definition = getToolDefinition(toolCall.name)
+    if (definition) {
+      args = coerceArgumentsToSchema(args, definition.parameters)
+      toolCall.arguments = args
+    }
     // Phase A (+ light JSX): correct model output before disk / UI ever see it
     if (toolCall.name === 'write_file' || toolCall.name === 'edit_file') {
       const corrected = correctToolArgsBeforeWrite(ctx.rootDir, {
@@ -326,12 +355,12 @@ async function runOneTool(
       return { content: result.content, isError: false }
     }
     return {
-      content: result.code ? `[${result.code}] ${result.error}` : result.error,
+      content: formatToolError(result.error, result.code),
       isError: true
     }
   } catch (err) {
     if (err instanceof ToolError) {
-      return { content: `[${err.code}] ${err.message}`, isError: true }
+      return { content: formatToolError(err.message, err.code), isError: true }
     }
     return {
       content: err instanceof Error ? err.message : String(err),
@@ -538,10 +567,72 @@ export async function runAgentLoop(params: AgentLoopParams): Promise<AgentLoopRe
       checkWarnings: checkWarnings.length ? [...checkWarnings] : undefined,
       workMode,
       workModeSource,
-      modeBlockedWrites: modeBlockedWrites || undefined
+      modeBlockedWrites: modeBlockedWrites || undefined,
+      regressions: partial.regressions?.length ? partial.regressions : undefined
     }
     emit({ type: 'done', result })
     return result
+  }
+
+  /**
+   * «בסיס ירוק» — משווה את מצב האפליקציה למצב האחרון הידוע כתקין.
+   * שלב א': מדווח בלבד. לעולם לא מכשיל את הבקשה ולא משנה קבצים.
+   */
+  const runHealthStep = async (
+    iteration: number
+  ): Promise<Regression[] | undefined> => {
+    if (
+      !shouldRunHealthCheck({
+        workMode,
+        writtenPaths: Array.from(writtenPaths)
+      })
+    ) {
+      return undefined
+    }
+
+    let outcome: Awaited<ReturnType<typeof runHealthCheck>>
+    try {
+      outcome = await runHealthCheck({
+        rootDir: projectRoot,
+        writtenPaths: Array.from(writtenPaths),
+        getPreviewUrl: params.getPreviewUrl,
+        signal: params.signal
+      })
+    } catch {
+      return undefined
+    }
+
+    if (outcome.skipped) {
+      // כשל תשתיתי — בשקט, בלי להפחיד את המשתמש
+      emit({
+        type: 'health',
+        phase: 'skipped',
+        message: outcome.reason,
+        iteration
+      })
+      return undefined
+    }
+
+    if (!outcome.regressions.length) {
+      emit({
+        type: 'health',
+        phase: 'ok',
+        message: outcome.firstRun
+          ? `נרשם בסיס ירוק (${outcome.report.routes.length} מסכים)`
+          : `הכול תקין (${outcome.report.routes.length} מסכים נבדקו)`,
+        iteration
+      })
+      return undefined
+    }
+
+    emit({
+      type: 'health',
+      phase: 'regressed',
+      message: formatRegressions(outcome.regressions),
+      regressions: outcome.regressions,
+      iteration
+    })
+    return outcome.regressions
   }
 
   const giveUpTsc = (errors: TscError[], iteration: number): AgentLoopResult => {
@@ -832,14 +923,16 @@ export async function runAgentLoop(params: AgentLoopParams): Promise<AgentLoopRe
           return finish({
             text: `${textBase}${qaNote}`.trim(),
             iterations,
-            stopReason: 'completed'
+            stopReason: 'completed',
+            regressions: await runHealthStep(i)
           })
         }
 
         return finish({
           text: modelResult.text?.trim() || lastAssistantText(messages),
           iterations,
-          stopReason: 'completed'
+          stopReason: 'completed',
+          regressions: await runHealthStep(i)
         })
       }
 

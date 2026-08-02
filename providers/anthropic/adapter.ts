@@ -2,23 +2,32 @@ import Anthropic from '@anthropic-ai/sdk'
 import type { CallParams, CallResult, ModelAdapter, StreamEvent, Usage } from '../types'
 import { normalizeProviderError } from '../errors'
 import { assertTools, resolveApiKey } from '../resolve'
+import { worthCaching } from '../cache'
 import {
   fromAnthropicContent,
   mapAnthropicStopReason,
   toAnthropicMessages,
-  toAnthropicTools
+  toAnthropicSystem,
+  toAnthropicTools,
+  withMessageCacheControl
 } from './convert'
 
 function usageFromAnthropic(u?: {
   input_tokens?: number
   output_tokens?: number
+  cache_read_input_tokens?: number | null
+  cache_creation_input_tokens?: number | null
 }): Usage {
   const inputTokens = u?.input_tokens ?? 0
   const outputTokens = u?.output_tokens ?? 0
+  const cacheReadTokens = u?.cache_read_input_tokens ?? 0
+  const cacheWriteTokens = u?.cache_creation_input_tokens ?? 0
   return {
     inputTokens,
     outputTokens,
-    totalTokens: inputTokens + outputTokens
+    totalTokens: inputTokens + outputTokens,
+    ...(cacheReadTokens ? { cacheReadTokens } : {}),
+    ...(cacheWriteTokens ? { cacheWriteTokens } : {})
   }
 }
 
@@ -34,16 +43,25 @@ export const anthropicAdapter: ModelAdapter = {
       const apiKey = resolveApiKey('anthropic', params.apiKey)
       const tools = assertTools(params.tools)
       const client = new Anthropic({ apiKey })
-      const messages = toAnthropicMessages(params.messages)
+
+      // מטמון פרומפט: הקידומת היציבה (system + כלים) נשלחת מחדש בכל
+      // איטרציה של הלולאה — בלי סמנים משלמים עליה מלא בכל פעם.
+      const cache = worthCaching(params.system, tools.length)
+      const reservedBreakpoints = cache ? (params.system?.trim() ? 1 : 0) + (tools.length ? 1 : 0) : 0
+      const messages = cache
+        ? withMessageCacheControl(toAnthropicMessages(params.messages), reservedBreakpoints)
+        : toAnthropicMessages(params.messages)
 
       const stream = client.messages.stream(
         {
           model: params.model,
           max_tokens: params.maxTokens ?? 8192,
           temperature: params.temperature,
-          system: params.system?.trim() || undefined,
+          system: toAnthropicSystem(params.system, cache) as Anthropic.MessageCreateParams['system'],
           messages: messages as Anthropic.MessageParam[],
-          ...(tools.length ? { tools: toAnthropicTools(tools) as Anthropic.Tool[] } : {})
+          ...(tools.length
+            ? { tools: toAnthropicTools(tools, cache) as Anthropic.Tool[] }
+            : {})
         },
         { signal: params.signal }
       )

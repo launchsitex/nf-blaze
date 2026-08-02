@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react'
 import type { AiProvider, ProjectMeta, ProjectTemplateId, ProjectTemplateInfo } from '@shared/types'
 import { AI_PROVIDERS, getDefaultModel, getProvider } from '@shared/types'
-import { FolderSearch, X } from 'lucide-react'
+import { FolderSearch, Github, X } from 'lucide-react'
+import type { GithubRepoInfo } from '@shared/types'
+import OAuthConnectButton from './OAuthConnectButton'
+
+type ProjectMode = 'create' | 'import' | 'github'
 
 interface Props {
   defaultProvider: AiProvider
@@ -16,7 +20,10 @@ export default function NewProjectModal({
   onClose,
   onCreated
 }: Props) {
-  const [mode, setMode] = useState<'create' | 'import'>('create')
+  const [mode, setMode] = useState<ProjectMode>('create')
+  const [repoUrl, setRepoUrl] = useState('')
+  const [myRepos, setMyRepos] = useState<GithubRepoInfo[]>([])
+  const [githubConnected, setGithubConnected] = useState<boolean | null>(null)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [folderPath, setFolderPath] = useState('')
@@ -42,6 +49,18 @@ export default function NewProjectModal({
       .catch((e) => setError(e instanceof Error ? e.message : String(e)))
   }, [])
 
+  // רשימת הריפוזיטוריז נטענת רק כשנכנסים לטאב — לא מעכבת פתיחת החלון
+  useEffect(() => {
+    if (mode !== 'github' || githubConnected !== null) return
+    window.nfblaze
+      .listGithubRepos()
+      .then((list) => {
+        setMyRepos(list)
+        setGithubConnected(true)
+      })
+      .catch(() => setGithubConnected(false))
+  }, [mode, githubConnected])
+
   async function pickFolder() {
     const path = await window.nfblaze.pickFolder()
     if (path) setFolderPath(path)
@@ -49,8 +68,13 @@ export default function NewProjectModal({
 
   async function submit() {
     setError('')
-    if (!name.trim()) {
+    // בשכפול מ-GitHub שם הפרויקט אופציונלי — נגזר משם הריפו
+    if (mode !== 'github' && !name.trim()) {
       setError('יש להזין שם לפרויקט')
+      return
+    }
+    if (mode === 'github' && !repoUrl.trim()) {
+      setError('יש להזין כתובת ריפוזיטורי או לבחור מהרשימה')
       return
     }
     if (!folderPath) {
@@ -67,28 +91,39 @@ export default function NewProjectModal({
     }
     setBusy(true)
     setBusyLabel(
-      mode === 'import'
-        ? 'בודק את הפרויקט, מתקין תלויות אם צריך ומכין תצוגה חיה…'
-        : 'מעתיק תבנית, מתקין תלויות ומכין תצוגה חיה…'
+      mode === 'github'
+        ? 'משכפל מ-GitHub, מתקין תלויות ומכין תצוגה חיה…'
+        : mode === 'import'
+          ? 'בודק את הפרויקט, מתקין תלויות אם צריך ומכין תצוגה חיה…'
+          : 'מעתיק תבנית, מתקין תלויות ומכין תצוגה חיה…'
     )
     try {
       const project =
-        mode === 'import'
-          ? await window.nfblaze.importProject({
-              name: name.trim(),
+        mode === 'github'
+          ? await window.nfblaze.importProjectFromGithub({
+              repoUrl: repoUrl.trim(),
+              name: name.trim() || undefined,
               description: description.trim(),
               folderPath,
               provider,
               model
             })
-          : await window.nfblaze.createProject({
-              name: name.trim(),
-              description: description.trim(),
-              folderPath,
-              provider,
-              model,
-              templateId
-            })
+          : mode === 'import'
+            ? await window.nfblaze.importProject({
+                name: name.trim(),
+                description: description.trim(),
+                folderPath,
+                provider,
+                model
+              })
+            : await window.nfblaze.createProject({
+                name: name.trim(),
+                description: description.trim(),
+                folderPath,
+                provider,
+                model,
+                templateId
+              })
       onCreated(project)
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
@@ -103,11 +138,19 @@ export default function NewProjectModal({
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
           <div>
-            <h2>{mode === 'import' ? 'ייבוא פרויקט קיים' : 'פרויקט חדש'}</h2>
+            <h2>
+              {mode === 'github'
+                ? 'ייבוא מ-GitHub'
+                : mode === 'import'
+                  ? 'ייבוא פרויקט קיים'
+                  : 'פרויקט חדש'}
+            </h2>
             <p className="sub">
-              {mode === 'import'
-                ? 'בחרו תיקייה עם פרויקט Node/JavaScript קיים (React, Vite, Next...) — הסוכן ימשיך לעבוד עליו בלי לגעת בקבצים.'
-                : 'בחרו תבנית ותיקייה ריקה — מועתקים קבצי הבסיס, מותקנות תלויות, ותצוגה חיה מוכנה מיד עם הפתיחה.'}
+              {mode === 'github'
+                ? 'הדביקו כתובת ריפוזיטורי ובחרו תיקייה ריקה — הריפו משוכפל, התלויות מותקנות והתצוגה החיה עולה.'
+                : mode === 'import'
+                  ? 'בחרו תיקייה עם פרויקט Node/JavaScript קיים (React, Vite, Next...) — הסוכן ימשיך לעבוד עליו בלי לגעת בקבצים.'
+                  : 'בחרו תבנית ותיקייה ריקה — מועתקים קבצי הבסיס, מותקנות תלויות, ותצוגה חיה מוכנה מיד עם הפתיחה.'}
             </p>
           </div>
           <button className="btn btn-ghost" onClick={onClose} aria-label="סגור" disabled={busy}>
@@ -136,50 +179,123 @@ export default function NewProjectModal({
                 <strong>ייבוא פרויקט קיים</strong>
                 <span>המשך עבודה על קוד שכבר יש לך</span>
               </button>
+              <button
+                type="button"
+                className={`template-card ${mode === 'github' ? 'active' : ''}`}
+                disabled={busy}
+                onClick={() => setMode('github')}
+              >
+                <strong>
+                  <Github size={14} style={{ verticalAlign: 'middle', marginInlineEnd: 6 }} />
+                  ייבוא מ-GitHub
+                </strong>
+                <span>שכפול ריפוזיטורי ישירות לתיקייה</span>
+              </button>
             </div>
           </div>
 
-          {mode === 'create' && (
-          <div className="field">
-            <label>תבנית התחלה</label>
-            <div className="template-pick">
-              {(templates.length ? templates : [
-                {
-                  id: 'web-app' as const,
-                  nameHe: 'אתר / אפליקציה',
-                  descriptionHe: 'Vite + React + TS + Tailwind + shadcn',
-                  hasSupabase: false
-                },
-                {
-                  id: 'data-app' as const,
-                  nameHe: 'אפליקציה עם נתונים',
-                  descriptionHe: 'אותו בסיס + Supabase',
-                  hasSupabase: true
-                }
-              ]).map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  className={`template-card ${templateId === t.id ? 'active' : ''}`}
+          {mode === 'github' && (
+            <div className="field">
+              <label>ריפוזיטורי</label>
+              <input
+                className="input"
+                value={repoUrl}
+                onChange={(e) => setRepoUrl(e.target.value)}
+                placeholder="https://github.com/owner/repo  או  owner/repo"
+                style={{ direction: 'ltr', textAlign: 'left' }}
+                disabled={busy}
+              />
+              {githubConnected === false && (
+                <div style={{ marginTop: 10 }}>
+                  <p className="desc" style={{ marginBottom: 8 }}>
+                    ריפו ציבורי עובד גם בלי חיבור. חבר חשבון כדי לבחור מרשימת הריפוזיטוריז שלך
+                    (כולל פרטיים):
+                  </p>
+                  <OAuthConnectButton
+                    provider="github"
+                    disabled={busy}
+                    onConnected={async () => {
+                      // אחרי החיבור הרשימה נטענת מיד — בשביל זה נכנסים לכאן
+                      try {
+                        setMyRepos(await window.nfblaze.listGithubRepos())
+                        setGithubConnected(true)
+                      } catch (e) {
+                        setError(e instanceof Error ? e.message : String(e))
+                      }
+                    }}
+                    onError={(m) => m && setError(m)}
+                  />
+                </div>
+              )}
+              {myRepos.length > 0 && (
+                <select
+                  className="select"
+                  style={{ marginTop: 8, direction: 'ltr', textAlign: 'left' }}
+                  value=""
                   disabled={busy}
-                  onClick={() => setTemplateId(t.id)}
+                  onChange={(e) => {
+                    const repo = myRepos.find((r) => r.cloneUrl === e.target.value)
+                    if (!repo) return
+                    setRepoUrl(repo.cloneUrl)
+                    if (!name.trim()) setName(repo.name)
+                  }}
                 >
-                  <strong>{t.nameHe}</strong>
-                  <span>{t.descriptionHe}</span>
-                </button>
-              ))}
+                  <option value="">— או בחר מהריפוזיטוריז שלך —</option>
+                  {myRepos.map((r) => (
+                    <option key={r.fullName} value={r.cloneUrl}>
+                      {r.fullName}
+                      {r.private ? ' (פרטי)' : ''}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
-          </div>
+          )}
+
+          {mode === 'create' && (
+            <div className="field">
+              <label>תבנית התחלה</label>
+              <div className="template-pick">
+                {(templates.length
+                  ? templates
+                  : [
+                      {
+                        id: 'web-app' as const,
+                        nameHe: 'אתר / אפליקציה',
+                        descriptionHe: 'Vite + React + TS + Tailwind + shadcn',
+                        hasSupabase: false
+                      },
+                      {
+                        id: 'data-app' as const,
+                        nameHe: 'אפליקציה עם נתונים',
+                        descriptionHe: 'אותו בסיס + Supabase',
+                        hasSupabase: true
+                      }
+                    ]
+                ).map((t) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    className={`template-card ${templateId === t.id ? 'active' : ''}`}
+                    disabled={busy}
+                    onClick={() => setTemplateId(t.id)}
+                  >
+                    <strong>{t.nameHe}</strong>
+                    <span>{t.descriptionHe}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
           )}
 
           <div className="field">
-            <label>שם הפרויקט</label>
+            <label>{mode === 'github' ? 'שם הפרויקט (ריק = שם הריפו)' : 'שם הפרויקט'}</label>
             <input
               className="input"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="לדוגמה: מערכת CRM ללקוחות"
-              autoFocus
+              placeholder={mode === 'github' ? 'נגזר אוטומטית מהריפו' : 'לדוגמה: מערכת CRM ללקוחות'}
+              autoFocus={mode !== 'github'}
               disabled={busy}
             />
           </div>
@@ -197,7 +313,11 @@ export default function NewProjectModal({
 
           <div className="field">
             <label>
-              {mode === 'import' ? 'תיקיית הפרויקט הקיים' : 'תיקיית הפרויקט במחשב (ריקה)'}
+              {mode === 'import'
+                ? 'תיקיית הפרויקט הקיים'
+                : mode === 'github'
+                  ? 'תיקיית יעד לשכפול (ריקה)'
+                  : 'תיקיית הפרויקט במחשב (ריקה)'}
             </label>
             <div className="folder-row">
               <input

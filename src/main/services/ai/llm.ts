@@ -141,6 +141,21 @@ async function callGemini(options: LlmCallOptions): Promise<string> {
   return text
 }
 
+/**
+ * ההודעה שנשמרת לצ׳אט חייבת להיות מה שהמשתמש ראה זורם בלייב — טקסט הלולאה
+ * לבדו הוא רק האיטרציה האחרונה, ושמירתו גרמה לטקסט שהוזרם «להיעלם» ולהתחלף
+ * בתוכן אחר בסוף הסבב. הטקסט הסופי עשוי להכיל זנב שלא הוזרם (למשל סיכום
+ * בדיקת דפדפן) — מאתרים את סוף הטקסט שהוזרם בתוכו ומצרפים רק את התוספת.
+ */
+export function mergeStreamedWithFinal(streamed: string, finalText: string): string {
+  if (!streamed) return finalText
+  if (!finalText || streamed.includes(finalText)) return streamed
+  const anchor = streamed.slice(-40)
+  const pos = finalText.lastIndexOf(anchor)
+  if (pos >= 0) return streamed + finalText.slice(pos + anchor.length)
+  return `${streamed}\n\n${finalText}`
+}
+
 /** Strip nfblaze / clarify / action JSON blocks from live display text */
 export function stripActionBlocksForDisplay(raw: string): string {
   return raw

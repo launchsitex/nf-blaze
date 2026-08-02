@@ -1,0 +1,1046 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <!-- בלי זה, עדכון של הפורטל משאיר בדפדפן JavaScript ישן שמדבר מול סכמה חדשה -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <title>NF-Blaze · ניהול רישיונות</title>
+    <!-- נטען לפני המודול (מודולים נדחים) כדי ש-window.NFB_CONFIG יהיה מוכן -->
+    <script src="config.js"></script>
+    <style>
+      :root {
+        --bg: #0c0f14;
+        --panel: #141922;
+        --panel-2: #1a2029;
+        --line: #232b37;
+        --text: #e8e8ea;
+        --muted: #8b95a5;
+        --accent: #f0a04b;
+        --accent-2: #e08a2e;
+        --danger: #e5534b;
+        --success: #4caf50;
+        --radius: 12px;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        min-height: 100vh;
+      }
+      .topbar {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 14px 24px; border-bottom: 1px solid var(--line);
+        background: rgba(20, 25, 34, 0.7); position: sticky; top: 0; z-index: 5;
+        backdrop-filter: blur(8px);
+      }
+      .brand { display: flex; align-items: center; gap: 10px; }
+      .brand-mark {
+        width: 36px; height: 36px; border-radius: 9px; display: grid; place-items: center;
+        background: linear-gradient(135deg, var(--accent), var(--accent-2));
+        color: #1a1206; font-weight: 800; font-size: 0.95rem;
+      }
+      .brand-name { font-weight: 700; letter-spacing: 0.2px; }
+      .brand-tag { font-size: 0.75rem; color: var(--muted); }
+      .wrap { max-width: 1080px; margin: 0 auto; padding: 28px 20px 60px; }
+      .card {
+        background: var(--panel); border: 1px solid var(--line);
+        border-radius: var(--radius); padding: 22px; margin-bottom: 20px;
+      }
+      .card h2 { margin: 0 0 4px; font-size: 1.1rem; }
+      .desc { color: var(--muted); font-size: 0.85rem; margin: 0 0 16px; line-height: 1.6; }
+      label { display: block; font-size: 0.82rem; color: var(--muted); margin-bottom: 6px; }
+      .field { margin-bottom: 14px; }
+      input[type='text'], input[type='email'], input[type='password'], input[type='date'] {
+        width: 100%; padding: 10px 12px; border-radius: 9px;
+        border: 1px solid var(--line); background: var(--panel-2); color: var(--text);
+        font-size: 0.95rem; font-family: inherit;
+      }
+      input:focus { outline: none; border-color: var(--accent); }
+      input[type='date'] { color-scheme: dark; }
+      .row { display: flex; gap: 14px; flex-wrap: wrap; }
+      .row > * { flex: 1 1 220px; }
+      button {
+        border: none; border-radius: 9px; padding: 10px 18px; font-size: 0.92rem;
+        font-family: inherit; font-weight: 600; cursor: pointer; transition: filter .15s;
+      }
+      button:hover:not(:disabled) { filter: brightness(1.08); }
+      button:disabled { opacity: 0.55; cursor: not-allowed; }
+      .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #1a1206; }
+      .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--line); }
+      .checkbox { display: flex; align-items: center; gap: 8px; margin: 8px 0 16px; }
+      .checkbox input { width: 16px; height: 16px; accent-color: var(--accent); }
+      .checkbox label { margin: 0; color: var(--text); font-size: 0.9rem; }
+      .msg { padding: 10px 14px; border-radius: 9px; font-size: 0.87rem; margin-bottom: 14px; line-height: 1.5; }
+      .msg-error { background: rgba(229, 83, 75, 0.12); border: 1px solid rgba(229, 83, 75, 0.4); color: #ff9a94; }
+      .msg-ok { background: rgba(76, 175, 80, 0.12); border: 1px solid rgba(76, 175, 80, 0.35); color: #8fd694; }
+      .keybox {
+        background: #0a0d12; border: 1px solid var(--line); border-radius: 9px;
+        padding: 12px; font-family: Consolas, monospace; font-size: 0.78rem;
+        word-break: break-all; direction: ltr; text-align: left; line-height: 1.6;
+        max-height: 140px; overflow: auto;
+      }
+      table { width: 100%; border-collapse: collapse; font-size: 0.87rem; }
+      th, td { padding: 10px 12px; text-align: right; border-bottom: 1px solid var(--line); }
+      th { color: var(--muted); font-weight: 600; font-size: 0.8rem; white-space: nowrap; }
+      tbody tr:hover { background: var(--panel-2); }
+      .pill { padding: 2px 10px; border-radius: 20px; font-size: 0.75rem; white-space: nowrap; display: inline-block; }
+      .pill-ok { background: rgba(76, 175, 80, 0.15); color: #8fd694; }
+      .pill-exp { background: rgba(229, 83, 75, 0.15); color: #ff9a94; }
+      .pill-forever { background: rgba(240, 160, 75, 0.15); color: var(--accent); }
+      .center-wrap { min-height: calc(100vh - 66px); display: grid; place-items: center; padding: 20px; }
+      .center-card { max-width: 440px; width: 100%; }
+      .table-wrap { overflow-x: auto; }
+      .hidden { display: none !important; }
+
+      /* טאבים */
+      .tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+      .tab {
+        background: transparent; border: 1px solid var(--line); color: var(--muted);
+        display: inline-flex; align-items: center; gap: 8px; min-height: 42px;
+      }
+      .tab.active {
+        background: rgba(240, 160, 75, 0.12); border-color: var(--accent); color: var(--accent);
+      }
+      .tab .count {
+        background: var(--accent); color: #1a1206; border-radius: 20px;
+        padding: 1px 8px; font-size: 0.74rem; font-weight: 800;
+      }
+      .tab:not(.active) .count { background: var(--line); color: var(--muted); }
+
+      /* בקשות רישיון */
+      .pill-pending { background: rgba(240, 160, 75, 0.15); color: var(--accent); }
+      .pill-rejected { background: rgba(229, 83, 75, 0.15); color: #ff9a94; }
+      .req-msg {
+        color: var(--text); font-size: 0.85rem; line-height: 1.6;
+        max-width: 380px; white-space: pre-wrap; word-break: break-word;
+      }
+      /* nowrap: אחרת התא הצר מפיל את הכפתורים אחד מתחת לשני */
+      .row-actions { display: flex; gap: 6px; flex-wrap: nowrap; }
+      .row-actions button { padding: 6px 12px; font-size: 0.8rem; white-space: nowrap; }
+      /* עמודת הפעולות לא נדחסת — אחרת הכפתורים נערמים אנכית */
+      #req-table td:last-child { white-space: nowrap; width: 1%; }
+      /* עמודת ההודעה סופגת את השטח שנשאר */
+      #req-table td:nth-child(4) { width: 40%; }
+      .btn-ok { background: rgba(76, 175, 80, 0.16); color: #8fd694; border: 1px solid rgba(76,175,80,.4); }
+      .btn-no { background: rgba(229, 83, 75, 0.14); color: #ff9a94; border: 1px solid rgba(229,83,75,.4); }
+      .filters { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+      .filters button { padding: 6px 14px; font-size: 0.82rem; }
+      .filters .on { background: rgba(240,160,75,.14); color: var(--accent); border: 1px solid var(--accent); }
+      .filters .off { background: transparent; color: var(--muted); border: 1px solid var(--line); }
+      /* מפריד בין קבוצות סינון (סוג / סטטוס) באותה שורה */
+      .filters .sep { width: 1px; background: var(--line); margin: 2px 4px; }
+
+      /* משוב ממשתמשים */
+      .pill-bug { background: rgba(229, 83, 75, 0.15); color: #ff9a94; }
+      .pill-feature { background: rgba(240, 160, 75, 0.15); color: var(--accent); }
+      .pill-feedback { background: rgba(91, 159, 212, 0.16); color: #8fc4ea; }
+      .pill-question { background: rgba(139, 149, 165, 0.18); color: #b9c3d1; }
+      .pill-license { background: rgba(76, 175, 80, 0.15); color: #8fd694; }
+      /* פנייה שהשם בה מוצהר ולא נגזר ממפתח חתום — חייבת להיראות אחרת */
+      .pill-unverified {
+        background: rgba(229, 83, 75, 0.12); color: #ffb3ae;
+        border: 1px dashed rgba(229, 83, 75, 0.5);
+      }
+      .pill-new { background: rgba(240, 160, 75, 0.15); color: var(--accent); }
+      .pill-progress { background: rgba(91, 159, 212, 0.16); color: #8fc4ea; }
+      .pill-done { background: rgba(76, 175, 80, 0.15); color: #8fd694; }
+      #fb-table td:last-child { white-space: nowrap; width: 1%; }
+      #fb-table td:nth-child(2) { width: 42%; }
+      .fb-title { font-weight: 600; display: block; margin-bottom: 4px; }
+      .fb-msg {
+        color: var(--muted); font-size: 0.83rem; line-height: 1.6;
+        white-space: pre-wrap; word-break: break-word;
+      }
+      /* פנייה ארוכה לא מותחת את הטבלה — נפתחת בלחיצה */
+      .fb-msg-clamp {
+        max-height: 76px; overflow: hidden;
+        -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent);
+        mask-image: linear-gradient(to bottom, #000 55%, transparent);
+      }
+      .fb-more {
+        background: none; border: none; color: var(--accent); padding: 4px 0 0;
+        font-size: 0.78rem; cursor: pointer; font-family: inherit;
+      }
+      .fb-env { color: var(--muted); font-size: 0.76rem; white-space: nowrap; }
+      .fb-when { white-space: nowrap; }
+      .fb-when .t { color: var(--muted); font-size: 0.76rem; display: block; }
+      .fb-mail { color: var(--accent); font-size: 0.78rem; }
+
+      /* במובייל הטבלה נפרשת לכרטיסים — טבלה של 7 עמודות לא קריאה בטלפון */
+      @media (max-width: 720px) {
+        #req-table thead, #fb-table thead { display: none; }
+        #req-table, #req-table tbody, #req-table tr, #req-table td,
+        #fb-table, #fb-table tbody, #fb-table tr, #fb-table td { display: block; width: 100%; }
+        #req-table tr, #fb-table tr {
+          border: 1px solid var(--line); border-radius: 12px;
+          padding: 12px; margin-bottom: 12px; background: var(--panel-2);
+        }
+        #req-table td, #fb-table td { border: none; padding: 5px 0; text-align: right; }
+        #req-table td::before, #fb-table td::before {
+          content: attr(data-label); display: block;
+          color: var(--muted); font-size: 0.74rem; margin-bottom: 2px;
+        }
+        .req-msg { max-width: none; }
+        .wrap { padding: 20px 14px 50px; }
+        .card { padding: 16px; }
+      }
+      .muted-small { color: var(--muted); font-size: 0.78rem; }
+
+      /* ניהול מחשבים ומכסה */
+      .seat-count {
+        background: none; border: none; color: var(--accent); cursor: pointer;
+        font-family: inherit; font-size: 0.87rem; padding: 2px 6px; border-radius: 6px;
+      }
+      .seat-count:hover { background: rgba(240, 160, 75, 0.12); }
+      .seat-count.full { color: #ff9a94; }
+      .seat-quota {
+        width: 62px; padding: 5px 8px; border-radius: 7px;
+        border: 1px solid var(--line); background: var(--panel-2); color: var(--text);
+        font-size: 0.85rem; font-family: inherit; text-align: center;
+      }
+      .seat-quota:focus { outline: none; border-color: var(--accent); }
+      .seat-row td { background: var(--panel-2); }
+      .seat-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+      .seat-item {
+        display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+        padding: 10px 12px; border: 1px solid var(--line); border-radius: 9px;
+      }
+      .seat-item .meta { color: var(--muted); font-size: 0.78rem; }
+      .seat-item .fp {
+        font-family: Consolas, monospace; font-size: 0.72rem; color: var(--muted);
+        direction: ltr;
+      }
+      .seat-item button { margin-inline-start: auto; padding: 5px 12px; font-size: 0.78rem; }
+      .copy-btn { background: var(--panel-2); color: var(--muted); border: 1px solid var(--line); padding: 5px 12px; font-size: 0.76rem; }
+    </style>
+  </head>
+  <body>
+    <div class="topbar">
+      <div class="brand">
+        <div class="brand-mark">NF</div>
+        <div>
+          <div class="brand-name">NF-Blaze</div>
+          <div class="brand-tag">ניהול רישיונות</div>
+        </div>
+      </div>
+      <div id="userbar" class="hidden">
+        <span class="muted-small" id="user-email"></span>
+        <button class="btn-ghost" id="logout" style="margin-inline-start: 12px">יציאה</button>
+      </div>
+    </div>
+
+    <!-- מסך התחברות / הרשמה ראשונה -->
+    <div id="auth-view" class="center-wrap hidden">
+      <div class="card center-card">
+        <h2 id="auth-title">כניסה</h2>
+        <p class="desc" id="auth-desc">התחברו כדי לנהל את הרישיונות.</p>
+        <div id="auth-msg"></div>
+        <div class="field">
+          <label for="email">אימייל</label>
+          <input type="email" id="email" autocomplete="username" dir="ltr" />
+        </div>
+        <div class="field">
+          <label for="password">סיסמה</label>
+          <input type="password" id="password" autocomplete="current-password" dir="ltr" />
+        </div>
+        <div class="field hidden" id="confirm-field">
+          <label for="password2">אימות סיסמה</label>
+          <input type="password" id="password2" autocomplete="new-password" dir="ltr" />
+        </div>
+        <button class="btn-primary" id="auth-submit" style="width: 100%">כניסה</button>
+        <p class="muted-small" id="auth-note" style="margin-top: 14px"></p>
+      </div>
+    </div>
+
+    <!-- לוח הבקרה -->
+    <div id="app-view" class="wrap hidden">
+      <div class="tabs">
+        <button class="tab active" id="tab-licenses" type="button">רישיונות</button>
+        <button class="tab" id="tab-requests" type="button">
+          בקשות רישיונות
+          <span class="count hidden" id="pending-count">0</span>
+        </button>
+        <button class="tab" id="tab-feedback" type="button">
+          משוב ממשתמשים
+          <span class="count hidden" id="new-feedback-count">0</span>
+        </button>
+      </div>
+
+      <!-- ══ משוב ממשתמשים ══ -->
+      <div id="feedback-panel" class="hidden">
+        <div class="card">
+          <h2>משוב ממשתמשים</h2>
+          <p class="desc">
+            פניות שנשלחו מתוך NF-Blaze — דיווחי תקלות, הצעות שיפור, משוב, שאלות
+            ובקשות רישיון. סימון «בטיפול» / «טופל» הוא לניהול פנימי ואינו נשלח ללקוח.
+            <br />
+            <strong>שים לב לתגית «לא מאומתת»:</strong> פנייה כזו נשלחה ממחשב בלי
+            רישיון פעיל, והשם והאימייל בה הם מה שהפונה הקליד — אין להסתמך עליהם
+            כזהות. בפנייה בלי התגית, השם נגזר בשרת ממפתח הרישיון החתום.
+          </p>
+
+          <div class="filters" id="fb-kind-filters">
+            <button class="on" data-kind="all" type="button">הכל</button>
+            <button class="off" data-kind="bug" type="button">תקלות</button>
+            <button class="off" data-kind="feature" type="button">שיפורים</button>
+            <button class="off" data-kind="feedback" type="button">משוב</button>
+            <button class="off" data-kind="question" type="button">שאלות</button>
+            <button class="off" data-kind="license" type="button">בקשות רישיון</button>
+            <span class="sep"></span>
+            <button class="off" data-status="all" type="button">כל הסטטוסים</button>
+            <button class="on" data-status="open" type="button">פתוחות</button>
+            <button class="off" data-status="done" type="button">טופלו</button>
+          </div>
+
+          <div id="fb-msg"></div>
+          <p class="desc" id="fb-count">טוען…</p>
+
+          <div class="table-wrap">
+            <table id="fb-table">
+              <thead>
+                <tr>
+                  <th>סוג</th>
+                  <th>הפנייה</th>
+                  <th>בעל הרישיון</th>
+                  <th>סביבה</th>
+                  <th>תאריך ושעה</th>
+                  <th>סטטוס</th>
+                  <th>פעולות</th>
+                </tr>
+              </thead>
+              <tbody id="fb-rows"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ בקשות רישיונות ══ -->
+      <div id="requests-panel" class="hidden">
+        <div class="card">
+          <h2>בקשות רישיונות</h2>
+          <p class="desc">
+            בקשות שהתקבלו מהטופס ב-nf-blaze.dev. אחרי אישור — יוצרים רישיון בטאב
+            «רישיונות» ושולחים את המפתח למייל שבבקשה. הובטח ללקוח שהמפתח יישלח
+            תוך 48 שעות.
+          </p>
+
+          <div class="filters" id="req-filters">
+            <button class="on" data-filter="pending" type="button">ממתינות</button>
+            <button class="off" data-filter="approved" type="button">אושרו</button>
+            <button class="off" data-filter="rejected" type="button">נדחו</button>
+            <button class="off" data-filter="all" type="button">הכל</button>
+          </div>
+
+          <div id="req-msg"></div>
+          <p class="desc" id="req-count">טוען…</p>
+
+          <div class="table-wrap">
+            <table id="req-table">
+              <thead>
+                <tr>
+                  <th>שם מלא</th>
+                  <th>אימייל</th>
+                  <th>איך הגיע</th>
+                  <th>מה רוצה לבנות</th>
+                  <th>תאריך</th>
+                  <th>סטטוס</th>
+                  <th>פעולות</th>
+                </tr>
+              </thead>
+              <tbody id="req-rows"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ רישיונות ══ -->
+      <div id="licenses-panel">
+      <div class="card">
+        <h2>יצירת רישיון חדש</h2>
+        <p class="desc">
+          השם שיוזן כאן הוא השם שהלקוח יראה בכניסה למערכת. המפתח נחתם בשרת —
+          המפתח הפרטי לא עובר בדפדפן.
+        </p>
+        <div id="issue-msg"></div>
+        <div class="row">
+          <div class="field">
+            <label for="cust-name">שם מלא של הלקוח</label>
+            <input type="text" id="cust-name" placeholder="נתנאל פולברש" />
+          </div>
+          <div class="field">
+            <label for="cust-email">אימייל (לא חובה)</label>
+            <input type="email" id="cust-email" dir="ltr" />
+          </div>
+          <div class="field">
+            <label for="exp-date">תוקף עד</label>
+            <input type="date" id="exp-date" />
+          </div>
+        </div>
+        <div class="checkbox">
+          <input type="checkbox" id="forever" />
+          <label for="forever">ללא הגבלת זמן</label>
+        </div>
+        <button class="btn-primary" id="issue-btn">צור רישיון</button>
+
+        <div id="issued" class="hidden" style="margin-top: 18px">
+          <div class="msg msg-ok">
+            <strong>זו הפעם היחידה שהמפתח מוצג.</strong> העתיקו אותו עכשיו ושלחו
+            ללקוח — הוא מדביק אותו במסך הכניסה של NF-Blaze. ברשימה למטה יופיע
+            הלקוח בלבד, בלי המפתח.
+          </div>
+          <div class="keybox" id="issued-key"></div>
+          <button class="copy-btn" id="copy-key" style="margin-top: 10px">העתק מפתח</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>לקוחות עם רישיון</h2>
+        <p class="desc" id="count-desc">טוען…</p>
+        <div id="list-msg"></div>
+        <div class="table-wrap">
+          <table id="lic-table">
+            <thead>
+              <tr>
+                <th>שם הלקוח</th>
+                <th>אימייל</th>
+                <th>נוצר בתאריך</th>
+                <th>תוקף</th>
+                <th>סטטוס</th>
+                <th>מחשבים</th>
+                <th>מכסה</th>
+              </tr>
+            </thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+        <p class="muted-small" style="margin-top: 12px">
+          «מחשבים» = כמה מכונות תפוסות מתוך המכסה. לחיצה על המספר פותחת את
+          רשימת המחשבים ומאפשרת לשחרר אחד — נדרש כשלקוח מפרמט, מחליף מחשב או
+          משדרג חומרה. השחרור פנוי מיד; המחשב הבא שיתחבר יתפוס את המקום.
+        </p>
+      </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
+
+      const cfg = window.NFB_CONFIG || {}
+      const $ = (id) => document.getElementById(id)
+      const show = (el, on = true) => el.classList.toggle('hidden', !on)
+      const msg = (el, text, kind = 'error') => {
+        el.innerHTML = text ? `<div class="msg msg-${kind}">${text}</div>` : ''
+      }
+
+      if (!cfg.SUPABASE_URL || String(cfg.SUPABASE_ANON_KEY || '').includes('PASTE_')) {
+        document.body.innerHTML =
+          '<div style="padding:40px;font-family:sans-serif;color:#e8e8ea">' +
+          '<h2>חסרות הגדרות</h2><p>ערכו את <code>config.js</code> והזינו את כתובת הפרויקט ומפתח ה-anon.</p></div>'
+        throw new Error('missing config')
+      }
+
+      const sb = createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY)
+      const FN = `${cfg.SUPABASE_URL}/functions/v1`
+      let mode = 'login' // או 'register' בפעם הראשונה בלבד
+
+      const fmtDate = (iso) =>
+        iso ? new Date(iso).toLocaleDateString('he-IL', { year: 'numeric', month: '2-digit', day: '2-digit' }) : '—'
+
+      /** תאריך + שעה — בפניות משוב הסדר הכרונולוגי המדויק חשוב לתחקור */
+      const fmtTime = (iso) =>
+        iso ? new Date(iso).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }) : ''
+
+      /** בריחת HTML — כל תוכן שמגיע מהטופס הציבורי נכנס לדף דרך innerHTML */
+      const esc = (s) =>
+        String(s ?? '').replace(
+          /[<>&"']/g,
+          (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' })[c]
+        )
+
+      /** קורא שגיאה מתשובת פונקציה בלי לבלוע את ההודעה המקורית של השרת */
+      async function readError(res) {
+        try {
+          const body = await res.json()
+          return body.error || `שגיאה ${res.status}`
+        } catch {
+          return `שגיאה ${res.status}`
+        }
+      }
+
+      async function boot() {
+        const { data } = await sb.auth.getSession()
+        if (data.session) return enterApp(data.session)
+
+        // האם עדיין אפשר להירשם? (רק עד שנוצר המנהל הראשון)
+        try {
+          const res = await fetch(`${FN}/admin-bootstrap`, {
+            headers: { apikey: cfg.SUPABASE_ANON_KEY }
+          })
+          const body = await res.json()
+          mode = body.canRegister ? 'register' : 'login'
+        } catch {
+          mode = 'login'
+        }
+
+        $('auth-title').textContent = mode === 'register' ? 'הקמת חשבון מנהל' : 'כניסה'
+        $('auth-desc').textContent =
+          mode === 'register'
+            ? 'זו ההרשמה היחידה. אחרי שתיצרו את החשבון, מסך ההרשמה ייעלם לתמיד.'
+            : 'התחברו כדי לנהל את הרישיונות.'
+        $('auth-submit').textContent = mode === 'register' ? 'צור חשבון' : 'כניסה'
+        $('auth-note').textContent =
+          mode === 'register' ? 'הסיסמה חייבת להיות באורך 10 תווים לפחות.' : ''
+        show($('confirm-field'), mode === 'register')
+        $('password').setAttribute('autocomplete', mode === 'register' ? 'new-password' : 'current-password')
+        show($('auth-view'), true)
+      }
+
+      async function submitAuth() {
+        const email = $('email').value.trim()
+        const password = $('password').value
+        msg($('auth-msg'), '')
+        if (!email || !password) return msg($('auth-msg'), 'נדרשים אימייל וסיסמה.')
+
+        $('auth-submit').disabled = true
+        try {
+          if (mode === 'register') {
+            if (password !== $('password2').value) {
+              return msg($('auth-msg'), 'הסיסמאות אינן תואמות.')
+            }
+            const res = await fetch(`${FN}/admin-bootstrap`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', apikey: cfg.SUPABASE_ANON_KEY },
+              body: JSON.stringify({ email, password })
+            })
+            if (!res.ok) return msg($('auth-msg'), await readError(res))
+          }
+          const { data, error } = await sb.auth.signInWithPassword({ email, password })
+          if (error) return msg($('auth-msg'), error.message)
+          enterApp(data.session)
+        } finally {
+          $('auth-submit').disabled = false
+        }
+      }
+
+      function enterApp(session) {
+        show($('auth-view'), false)
+        show($('app-view'), true)
+        show($('userbar'), true)
+        $('user-email').textContent = session.user.email
+        loadLicenses()
+        loadRequests()
+        loadFeedback()
+      }
+
+      /* ══════════ בקשות רישיונות ══════════ */
+
+      const SOURCE_LABEL = {
+        facebook: 'פייסבוק',
+        google: 'גוגל',
+        referral: 'המלצה',
+        other: 'אחר'
+      }
+      const STATUS_PILL = {
+        pending: '<span class="pill pill-pending">ממתינה</span>',
+        approved: '<span class="pill pill-ok">אושרה</span>',
+        rejected: '<span class="pill pill-rejected">נדחתה</span>'
+      }
+
+      let reqFilter = 'pending'
+      let reqCache = []
+
+      /** טאב → [כפתור, פאנל, טעינה מחדש בכניסה] */
+      const TABS = {
+        licenses: ['tab-licenses', 'licenses-panel', null],
+        requests: ['tab-requests', 'requests-panel', () => loadRequests()],
+        feedback: ['tab-feedback', 'feedback-panel', () => loadFeedback()]
+      }
+
+      function switchTab(which) {
+        for (const [name, [btnId, panelId]] of Object.entries(TABS)) {
+          const on = name === which
+          $(btnId).classList.toggle('active', on)
+          $(panelId).classList.toggle('hidden', !on)
+        }
+        TABS[which]?.[2]?.()
+      }
+
+      for (const [name, [btnId]] of Object.entries(TABS)) {
+        $(btnId).addEventListener('click', () => switchTab(name))
+      }
+
+      // מסונן ל-#req-filters בכוונה: לטאב המשוב יש סרגל סינון משלו, וסלקטור
+      // גלובלי היה מחווט את שניהם לאותו handler
+      document.querySelectorAll('#req-filters button').forEach((b) => {
+        b.addEventListener('click', () => {
+          reqFilter = b.dataset.filter
+          document.querySelectorAll('#req-filters button').forEach((x) => {
+            const on = x.dataset.filter === reqFilter
+            x.className = on ? 'on' : 'off'
+          })
+          renderRequests()
+        })
+      })
+
+      async function loadRequests() {
+        const { data, error } = await sb
+          .from('nfb_license_requests')
+          .select('id, created_at, full_name, email, source, message, status, decided_at')
+          .order('created_at', { ascending: false })
+
+        if (error) {
+          $('req-count').textContent = ''
+          return msg($('req-msg'), `טעינת הבקשות נכשלה: ${error.message}`)
+        }
+        msg($('req-msg'), '')
+        reqCache = data || []
+
+        // מונה על הטאב — כדי לראות בקשות חדשות בלי להיכנס
+        const pending = reqCache.filter((r) => r.status === 'pending').length
+        const badge = $('pending-count')
+        badge.textContent = pending
+        badge.classList.toggle('hidden', pending === 0)
+
+        renderRequests()
+      }
+
+      function renderRequests() {
+        const rows = reqFilter === 'all' ? reqCache : reqCache.filter((r) => r.status === reqFilter)
+
+        $('req-count').textContent = rows.length
+          ? `${rows.length} בקשות`
+          : reqFilter === 'pending'
+            ? 'אין בקשות ממתינות.'
+            : 'אין בקשות בקטגוריה הזו.'
+
+        $('req-rows').innerHTML = rows
+          .map((r) => {
+            const actions =
+              r.status === 'pending'
+                ? `<div class="row-actions">
+                     <button class="btn-ok" data-approve="${r.id}">אשר</button>
+                     <button class="btn-no" data-reject="${r.id}">דחה</button>
+                   </div>`
+                : `<div class="row-actions">
+                     <button class="btn-ghost" data-reset="${r.id}">החזר לממתינה</button>
+                     <button class="btn-ghost" data-delete="${r.id}" title="מחיקה לצמיתות">מחק</button>
+                   </div>`
+
+            return `<tr>
+              <td data-label="שם מלא"><strong>${esc(r.full_name)}</strong></td>
+              <td data-label="אימייל" dir="ltr" style="text-align:start">
+                <a href="mailto:${esc(r.email)}" style="color:var(--accent)">${esc(r.email)}</a>
+              </td>
+              <td data-label="איך הגיע">${SOURCE_LABEL[r.source] || esc(r.source)}</td>
+              <td data-label="מה רוצה לבנות"><div class="req-msg">${esc(r.message)}</div></td>
+              <td data-label="תאריך" class="muted-small">${fmtDate(r.created_at)}</td>
+              <td data-label="סטטוס">${STATUS_PILL[r.status] || esc(r.status)}</td>
+              <td data-label="פעולות">${actions}</td>
+            </tr>`
+          })
+          .join('')
+      }
+
+      async function setRequestStatus(id, status) {
+        const { error } = await sb
+          .from('nfb_license_requests')
+          .update({ status, decided_at: status === 'pending' ? null : new Date().toISOString() })
+          .eq('id', id)
+
+        if (error) return msg($('req-msg'), `עדכון הסטטוס נכשל: ${error.message}`)
+        await loadRequests()
+      }
+
+      async function deleteRequest(id) {
+        const row = reqCache.find((r) => r.id === id)
+        if (!confirm(`למחוק לצמיתות את הבקשה של ${row ? row.full_name : 'הלקוח'}?`)) return
+        const { error } = await sb.from('nfb_license_requests').delete().eq('id', id)
+        if (error) return msg($('req-msg'), `המחיקה נכשלה: ${error.message}`)
+        await loadRequests()
+      }
+
+      // האזנה אחת לכל הטבלה — השורות נבנות מחדש בכל רינדור
+      $('req-rows').addEventListener('click', (e) => {
+        const btn = e.target.closest('button')
+        if (!btn) return
+        if (btn.dataset.approve) return setRequestStatus(btn.dataset.approve, 'approved')
+        if (btn.dataset.reject) return setRequestStatus(btn.dataset.reject, 'rejected')
+        if (btn.dataset.reset) return setRequestStatus(btn.dataset.reset, 'pending')
+        if (btn.dataset.delete) return deleteRequest(btn.dataset.delete)
+      })
+
+      /* ══════════ משוב ממשתמשים ══════════ */
+
+      const FB_KIND = {
+        bug: { label: 'תקלה', pill: 'pill-bug' },
+        feature: { label: 'שיפור', pill: 'pill-feature' },
+        feedback: { label: 'משוב', pill: 'pill-feedback' },
+        question: { label: 'שאלה', pill: 'pill-question' },
+        license: { label: 'בקשת רישיון', pill: 'pill-license' }
+      }
+      const FB_STATUS = {
+        new: '<span class="pill pill-new">חדשה</span>',
+        in_progress: '<span class="pill pill-progress">בטיפול</span>',
+        done: '<span class="pill pill-done">טופל</span>'
+      }
+      /** מעל זה הפנייה מוצגת מקוצרת עם «הצג הכל» */
+      const FB_CLAMP_CHARS = 220
+
+      let fbKind = 'all'
+      let fbStatus = 'open'
+      let fbCache = []
+      /** מזהי פניות שהמנהל פתח במלואן — נשמר בין רינדורים */
+      const fbExpanded = new Set()
+
+      async function loadFeedback() {
+        const { data, error } = await sb
+          .from('nfb_user_feedback')
+          .select(
+            'id, created_at, license_id, customer_name, verified, email, kind, title, message, app_version, os, status, handled_at'
+          )
+          .order('created_at', { ascending: false })
+
+        if (error) {
+          $('fb-count').textContent = ''
+          return msg($('fb-msg'), `טעינת המשוב נכשלה: ${error.message}`)
+        }
+        msg($('fb-msg'), '')
+        fbCache = data || []
+
+        // מונה על הטאב — כדי לראות פניות חדשות בלי להיכנס
+        const fresh = fbCache.filter((r) => r.status === 'new').length
+        const badge = $('new-feedback-count')
+        badge.textContent = fresh
+        badge.classList.toggle('hidden', fresh === 0)
+
+        renderFeedback()
+      }
+
+      function fbFiltered() {
+        return fbCache.filter((r) => {
+          if (fbKind !== 'all' && r.kind !== fbKind) return false
+          if (fbStatus === 'open') return r.status !== 'done'
+          if (fbStatus === 'done') return r.status === 'done'
+          return true
+        })
+      }
+
+      function renderFeedback() {
+        const rows = fbFiltered()
+        $('fb-count').textContent = rows.length
+          ? `${rows.length} פניות`
+          : 'אין פניות בקטגוריה הזו.'
+
+        $('fb-rows').innerHTML = rows
+          .map((r) => {
+            const kind = FB_KIND[r.kind] || { label: r.kind, pill: 'pill-question' }
+            const long = String(r.message || '').length > FB_CLAMP_CHARS
+            const open = fbExpanded.has(r.id)
+            const env = [r.app_version ? `גרסה ${esc(r.app_version)}` : '', esc(r.os || '')]
+              .filter(Boolean)
+              .join('<br />')
+
+            const actions = [
+              r.status !== 'in_progress' && r.status !== 'done'
+                ? `<button class="btn-ghost" data-progress="${r.id}">בטיפול</button>`
+                : '',
+              r.status !== 'done'
+                ? `<button class="btn-ok" data-done="${r.id}">טופל</button>`
+                : `<button class="btn-ghost" data-reopen="${r.id}">החזר לפתוחה</button>`,
+              `<button class="btn-ghost" data-fbdelete="${r.id}" title="מחיקה לצמיתות">מחק</button>`
+            ]
+              .filter(Boolean)
+              .join('')
+
+            return `<tr>
+              <td data-label="סוג"><span class="pill ${kind.pill}">${esc(kind.label)}</span></td>
+              <td data-label="הפנייה">
+                <span class="fb-title">${esc(r.title)}</span>
+                <div class="fb-msg${long && !open ? ' fb-msg-clamp' : ''}">${esc(r.message)}</div>
+                ${long ? `<button class="fb-more" data-toggle="${r.id}">${open ? 'הצג פחות' : 'הצג הכל'}</button>` : ''}
+              </td>
+              <td data-label="בעל הרישיון">
+                <strong>${esc(r.customer_name)}</strong>
+                ${r.verified ? '' : '<br /><span class="pill pill-unverified" title="נשלח ממחשב בלי רישיון פעיל — השם והאימייל הוקלדו על ידי הפונה">לא מאומתת</span>'}
+                ${r.email ? `<br /><a class="fb-mail" dir="ltr" href="mailto:${esc(r.email)}">${esc(r.email)}</a>` : ''}
+              </td>
+              <td data-label="סביבה" class="fb-env">${env || '—'}</td>
+              <td data-label="תאריך ושעה" class="fb-when">
+                ${fmtDate(r.created_at)}<span class="t">${fmtTime(r.created_at)}</span>
+              </td>
+              <td data-label="סטטוס">${FB_STATUS[r.status] || esc(r.status)}</td>
+              <td data-label="פעולות"><div class="row-actions">${actions}</div></td>
+            </tr>`
+          })
+          .join('')
+      }
+
+      document.querySelectorAll('#fb-kind-filters button').forEach((b) => {
+        b.addEventListener('click', () => {
+          // שתי קבוצות סינון באותו סרגל — כל אחת מסמנת רק את הכפתורים שלה
+          const group = b.dataset.kind ? 'kind' : 'status'
+          if (group === 'kind') fbKind = b.dataset.kind
+          else fbStatus = b.dataset.status
+          document
+            .querySelectorAll(`#fb-kind-filters button[data-${group}]`)
+            .forEach((x) => {
+              const on = (group === 'kind' ? x.dataset.kind : x.dataset.status) ===
+                (group === 'kind' ? fbKind : fbStatus)
+              x.className = on ? 'on' : 'off'
+            })
+          renderFeedback()
+        })
+      })
+
+      async function setFeedbackStatus(id, status) {
+        const { error } = await sb
+          .from('nfb_user_feedback')
+          .update({ status, handled_at: status === 'new' ? null : new Date().toISOString() })
+          .eq('id', id)
+
+        if (error) return msg($('fb-msg'), `עדכון הסטטוס נכשל: ${error.message}`)
+        await loadFeedback()
+      }
+
+      async function deleteFeedback(id) {
+        const row = fbCache.find((r) => r.id === id)
+        if (!confirm(`למחוק לצמיתות את הפנייה${row ? ` של ${row.customer_name}` : ''}?`)) return
+        const { error } = await sb.from('nfb_user_feedback').delete().eq('id', id)
+        if (error) return msg($('fb-msg'), `המחיקה נכשלה: ${error.message}`)
+        await loadFeedback()
+      }
+
+      // האזנה אחת לכל הטבלה — השורות נבנות מחדש בכל רינדור
+      $('fb-rows').addEventListener('click', (e) => {
+        const btn = e.target.closest('button')
+        if (!btn) return
+        if (btn.dataset.toggle) {
+          const id = btn.dataset.toggle
+          if (fbExpanded.has(id)) fbExpanded.delete(id)
+          else fbExpanded.add(id)
+          return renderFeedback()
+        }
+        if (btn.dataset.progress) return setFeedbackStatus(btn.dataset.progress, 'in_progress')
+        if (btn.dataset.done) return setFeedbackStatus(btn.dataset.done, 'done')
+        if (btn.dataset.reopen) return setFeedbackStatus(btn.dataset.reopen, 'new')
+        if (btn.dataset.fbdelete) return deleteFeedback(btn.dataset.fbdelete)
+      })
+
+      /** license_id → רשימת המחשבים, נטענת בלחיצה בלבד */
+      const seatsByLicense = new Map()
+      const openSeatRows = new Set()
+
+      async function loadLicenses() {
+        // license_key לא נשלף בכוונה — המפתח מוצג פעם אחת בלבד, בהנפקה עצמה.
+        // גם ההרשאה על העמודה נשללה במסד, כך שזו לא רק הסתרה בממשק.
+        const { data, error } = await sb
+          .from('nfb_licenses')
+          .select('id, license_id, customer_name, email, created_at, expires_at, seats')
+          .order('created_at', { ascending: false })
+
+        if (error) {
+          $('count-desc').textContent = ''
+          return msg($('list-msg'), `טעינת הרישיונות נכשלה: ${error.message}`)
+        }
+        msg($('list-msg'), '')
+        $('count-desc').textContent = data.length
+          ? `${data.length} רישיונות`
+          : 'עדיין לא הונפקו רישיונות.'
+
+        // ספירת מושבים לכל הרישיונות בשאילתה אחת, במקום אחת לכל שורה
+        const { data: seatRows } = await sb
+          .from('nfb_license_seats')
+          .select('license_id, fingerprint, hostname_hint, last_ip, first_seen, last_seen')
+          .order('last_seen', { ascending: false })
+
+        seatsByLicense.clear()
+        for (const s of seatRows || []) {
+          const list = seatsByLicense.get(s.license_id) || []
+          list.push(s)
+          seatsByLicense.set(s.license_id, list)
+        }
+
+        licCache = data
+        renderLicenses()
+      }
+
+      let licCache = []
+
+      function renderLicenses() {
+        const today = new Date().toISOString().slice(0, 10)
+        $('rows').innerHTML = licCache
+          .map((r) => {
+            const expired = r.expires_at && r.expires_at < today
+            const pill = !r.expires_at
+              ? '<span class="pill pill-forever">ללא הגבלה</span>'
+              : expired
+                ? '<span class="pill pill-exp">פג תוקף</span>'
+                : '<span class="pill pill-ok">פעיל</span>'
+
+            const seats = seatsByLicense.get(r.license_id) || []
+            const max = Number(r.seats) || 0
+            // 0 או שלילי = ללא הגבלה, בהתאם ללוגיקה ב-nfb_claim_seat
+            const unlimited = max <= 0
+            const full = !unlimited && seats.length >= max
+            const label = unlimited ? `${seats.length} / ∞` : `${seats.length} / ${max}`
+
+            const main = `<tr>
+              <td>${esc(r.customer_name)}</td>
+              <td class="muted-small" dir="ltr">${esc(r.email) || '—'}</td>
+              <td>${fmtDate(r.created_at)}</td>
+              <td>${r.expires_at ? fmtDate(r.expires_at) : '—'}</td>
+              <td>${pill}</td>
+              <td>
+                <button class="seat-count${full ? ' full' : ''}" data-seats="${esc(r.license_id)}"
+                  title="הצג את המחשבים המשויכים">${label}</button>
+              </td>
+              <td>
+                <input class="seat-quota" type="number" min="0" max="99" value="${max}"
+                  data-quota="${esc(r.license_id)}" title="0 = ללא הגבלה" />
+              </td>
+            </tr>`
+
+            if (!openSeatRows.has(r.license_id)) return main
+
+            const items = seats.length
+              ? seats
+                  .map(
+                    (s) => `<li class="seat-item">
+                      <div>
+                        <div>${esc(s.hostname_hint || 'מחשב ללא שם')}</div>
+                        <div class="meta">
+                          נראה לאחרונה ${fmtDate(s.last_seen)} ${fmtTime(s.last_seen)}
+                          · נרשם ${fmtDate(s.first_seen)}
+                          ${s.last_ip ? `· IP ${esc(s.last_ip)}` : ''}
+                        </div>
+                        <div class="fp">${esc(s.fingerprint)}</div>
+                      </div>
+                      <button class="btn-no" data-release="${esc(s.fingerprint)}"
+                        data-lic="${esc(r.license_id)}">שחרר מחשב</button>
+                    </li>`
+                  )
+                  .join('')
+              : '<li class="muted-small">אף מחשב עדיין לא הפעיל את הרישיון הזה.</li>'
+
+            return `${main}<tr class="seat-row"><td colspan="7">
+              <ul class="seat-list">${items}</ul>
+            </td></tr>`
+          })
+          .join('')
+      }
+
+      async function setSeatQuota(licenseId, value) {
+        const seats = Math.max(0, Math.min(99, Number(value) || 0))
+        const { error } = await sb
+          .from('nfb_licenses')
+          .update({ seats })
+          .eq('license_id', licenseId)
+        if (error) return msg($('list-msg'), `עדכון המכסה נכשל: ${error.message}`)
+        msg($('list-msg'), `המכסה עודכנה ל-${seats === 0 ? 'ללא הגבלה' : seats}.`, 'ok')
+        await loadLicenses()
+      }
+
+      async function releaseSeat(licenseId, fingerprint) {
+        const row = licCache.find((r) => r.license_id === licenseId)
+        if (
+          !confirm(
+            `לשחרר את המחשב הזה מהרישיון של ${row ? row.customer_name : 'הלקוח'}?\n\n` +
+              'המחשב יאבד גישה באימות הבא, והמקום יתפנה למחשב אחר.'
+          )
+        ) {
+          return
+        }
+        const { error } = await sb
+          .from('nfb_license_seats')
+          .delete()
+          .eq('license_id', licenseId)
+          .eq('fingerprint', fingerprint)
+        if (error) return msg($('list-msg'), `השחרור נכשל: ${error.message}`)
+        msg($('list-msg'), 'המחשב שוחרר. המקום פנוי למחשב אחר.', 'ok')
+        await loadLicenses()
+      }
+
+      // האזנה אחת לכל הטבלה — השורות נבנות מחדש בכל רינדור
+      $('rows').addEventListener('click', (e) => {
+        const btn = e.target.closest('button')
+        if (!btn) return
+        if (btn.dataset.seats) {
+          const id = btn.dataset.seats
+          if (openSeatRows.has(id)) openSeatRows.delete(id)
+          else openSeatRows.add(id)
+          return renderLicenses()
+        }
+        if (btn.dataset.release) return releaseSeat(btn.dataset.lic, btn.dataset.release)
+      })
+
+      $('rows').addEventListener('change', (e) => {
+        const input = e.target.closest('input[data-quota]')
+        if (input) void setSeatQuota(input.dataset.quota, input.value)
+      })
+
+      async function issue() {
+        const name = $('cust-name').value.trim()
+        const email = $('cust-email').value.trim()
+        const forever = $('forever').checked
+        const expiresAt = forever ? null : $('exp-date').value
+
+        msg($('issue-msg'), '')
+        show($('issued'), false)
+        if (!name) return msg($('issue-msg'), 'נדרש שם מלא של הלקוח.')
+        if (!forever && !expiresAt) {
+          return msg($('issue-msg'), 'בחרו תאריך תוקף, או סמנו «ללא הגבלת זמן».')
+        }
+
+        $('issue-btn').disabled = true
+        try {
+          const { data: s } = await sb.auth.getSession()
+          const res = await fetch(`${FN}/issue-license`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              apikey: cfg.SUPABASE_ANON_KEY,
+              Authorization: `Bearer ${s.session.access_token}`
+            },
+            body: JSON.stringify({ name, email, expiresAt })
+          })
+          if (!res.ok) return msg($('issue-msg'), await readError(res))
+          const body = await res.json()
+          $('issued-key').textContent = body.key
+          show($('issued'), true)
+          $('cust-name').value = ''
+          $('cust-email').value = ''
+          $('exp-date').value = ''
+          $('forever').checked = false
+          loadLicenses()
+        } catch (err) {
+          msg($('issue-msg'), String(err.message || err))
+        } finally {
+          $('issue-btn').disabled = false
+        }
+      }
+
+      $('auth-submit').addEventListener('click', submitAuth)
+      $('password').addEventListener('keydown', (e) => e.key === 'Enter' && submitAuth())
+      $('password2').addEventListener('keydown', (e) => e.key === 'Enter' && submitAuth())
+      $('issue-btn').addEventListener('click', issue)
+      $('forever').addEventListener('change', () => ($('exp-date').disabled = $('forever').checked))
+      $('copy-key').addEventListener('click', async () => {
+        await navigator.clipboard.writeText($('issued-key').textContent)
+        $('copy-key').textContent = 'הועתק ✓'
+        setTimeout(() => ($('copy-key').textContent = 'העתק מפתח'), 1500)
+      })
+      $('logout').addEventListener('click', async () => {
+        await sb.auth.signOut()
+        location.reload()
+      })
+
+      boot()
+    </script>
+  </body>
+</html>

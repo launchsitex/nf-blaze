@@ -2,8 +2,17 @@ import { useEffect, useState } from 'react'
 import type { LicenseStatus } from '@shared/license'
 import { KeyRound, ShieldCheck, Trash2 } from 'lucide-react'
 
+interface Props {
+  /**
+   * מדווח ל-App על כל שינוי בסטטוס הרישיון (הפעלה/הסרה), כדי שהגייט יגיב
+   * מיד. בלי זה, הסרת רישיון הייתה מעדכנת רק את הכרטיס והמשתמש היה נשאר
+   * בתוך המערכת עד הפעלה מחדש.
+   */
+  onChange?: (status: LicenseStatus) => void
+}
+
 /** כרטיס רישיון בהגדרות — סטטוס, הפעלת מפתח, הסרה */
-export default function LicenseCard() {
+export default function LicenseCard({ onChange }: Props) {
   const [status, setStatus] = useState<LicenseStatus | null>(null)
   const [key, setKey] = useState('')
   const [busy, setBusy] = useState(false)
@@ -22,6 +31,7 @@ export default function LicenseCard() {
     try {
       const next = await window.nfblaze.activateLicense(key.trim())
       setStatus(next)
+      onChange?.(next)
       setMsg(next.ok ? '✓ הרישיון הופעל' : next.messageHe)
       if (next.ok) setKey('')
     } catch (err) {
@@ -33,12 +43,13 @@ export default function LicenseCard() {
 
   async function remove() {
     if (!confirm('להסיר את הרישיון מהמחשב הזה?')) return
-    setStatus(await window.nfblaze.clearLicense())
+    const next = await window.nfblaze.clearLicense()
+    setStatus(next)
+    onChange?.(next)
     setMsg('הרישיון הוסר')
   }
 
   const licensed = status?.state === 'licensed'
-  const trial = status?.state === 'trial'
 
   return (
     <div className="settings-card">
@@ -54,9 +65,7 @@ export default function LicenseCard() {
       {!licensed && (
         <>
           <p className="desc" style={{ marginTop: 10 }}>
-            {trial
-              ? 'המערכת פועלת בתקופת ניסיון. הזינו מפתח רישיון כדי להמשיך אחריה.'
-              : 'הזינו את מפתח הרישיון שקיבלתם.'}
+            {'הזינו את מפתח הרישיון שקיבלתם.'}
           </p>
           <div className="folder-row">
             <input

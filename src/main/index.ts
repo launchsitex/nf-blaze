@@ -1,9 +1,15 @@
-import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, shell, Menu } from 'electron'
 import { join, resolve, normalize } from 'path'
 import { existsSync } from 'fs'
 import { v4 as uuidv4 } from 'uuid'
 import { IPC } from '../shared/ipc'
-import type { AiProvider, AppSettings, ProjectMeta, ShellRunRequest, WorkModeSelection } from '../shared/types'
+import type {
+  AiProvider,
+  AppSettings,
+  ProjectMeta,
+  ShellRunRequest,
+  WorkModeSelection
+} from '../shared/types'
 import { getDefaultModel } from '../shared/types'
 import {
   listProjects,
@@ -23,7 +29,18 @@ import {
   loadProjectPlan,
   loadProjectMemory
 } from './services/storage'
-import { setApiKey, getApiKey, hasApiKey, clearApiKey, getKeyStatus, setGithubToken, clearGithubToken, getGithubToken } from './services/secrets'
+import {
+  setApiKey,
+  getApiKey,
+  hasApiKey,
+  clearApiKey,
+  getKeyStatus,
+  setGithubToken,
+  clearGithubToken,
+  getGithubToken
+} from './services/secrets'
+import { recordDecision } from './services/trust'
+import { configureBundledBrowser } from './services/browser-env'
 import { loadIntegrations } from './services/integrations/store'
 import {
   validateGithubToken,
@@ -31,15 +48,26 @@ import {
   createGithubRepo,
   linkGithubRepo,
   pushGithubProject,
+  publishToGithub,
   disconnectGithub,
   listGithubBranches,
-  setGithubBranch
+  setGithubBranch,
+  cloneGithubRepo,
+  repoNameFromUrl
 } from './services/integrations/github'
 import {
   connectSupabase,
+  connectSupabaseProjectFromAccount,
   disconnectSupabase,
   testSupabaseConnection
 } from './services/integrations/supabase'
+import { connectProviderWithOAuth } from './services/integrations/oauth_connect'
+import { cancelOAuthFlow } from './services/integrations/oauth'
+import {
+  clearSupabaseAccount,
+  listSupabaseProjects,
+  loadSupabaseAccount
+} from './services/integrations/supabase_account'
 import {
   validateVercelToken,
   listVercelProjects,
@@ -53,7 +81,11 @@ import {
   clearVercelPlatformToken,
   vercelTokenStatus
 } from './services/integrations/vercel'
-import type { SupabaseConnectInput, VercelDeployInput } from '../shared/types'
+import type {
+  OAuthProviderId,
+  SupabaseConnectInput,
+  VercelDeployInput
+} from '../shared/types'
 import {
   buildFileTree,
   readProjectFile,
@@ -101,7 +133,15 @@ import {
 } from './services/preview-live'
 import type { PreviewLiveEvent } from './services/preview-live'
 import { stopAllMcpServers } from '../../agent/mcp/manager'
-import { startAutoUpdates } from './services/app_updates'
+import {
+  startAutoUpdates,
+  getUpdateState,
+  checkNow,
+  retryUpdate,
+  installUpdate,
+  snoozeUpdate,
+  isUpdateRequired
+} from './services/app_updates'
 import {
   listMcpServers,
   saveMcpServer,
@@ -111,8 +151,16 @@ import {
 } from './services/mcp_settings'
 import { probeRuntimeEnv } from './services/runtime-env'
 import { runPublishSecurityGate } from './services/security'
+import { submitFeedback } from './services/feedback'
+import type { FeedbackSubmitInput } from '../shared/types'
 import { summarizeToNewChat } from './services/chat_summarize'
-import { getLicenseStatus, activateLicense, clearLicense } from './services/license'
+import {
+  getLicenseStatus,
+  activateLicense,
+  clearLicense,
+  revalidateOnline
+} from './services/license'
+import { LICENSE_REVALIDATE_INTERVAL_MS } from '../shared/license'
 import type { PreviewElementSelection } from '../shared/types'
 
 // Must run before app is ready
@@ -120,9 +168,7 @@ registerPreviewScheme()
 
 let mainWindow: BrowserWindow | null = null
 
-function findHtmlInTree(
-  nodes: ReturnType<typeof buildFileTree>
-): string | null {
+function findHtmlInTree(nodes: ReturnType<typeof buildFileTree>): string | null {
   const preferred = ['index.html', 'index.htm', 'home.html']
   const all: string[] = []
   function walk(list: typeof nodes): void {
@@ -139,6 +185,9 @@ function findHtmlInTree(
   return all[0] || null
 }
 
+/** גובה סרגל האפליקציה — חייב להיות זהה ל-.topbar ב-CSS */
+const TITLE_BAR_HEIGHT = 56
+
 function createWindow(): void {
   mainWindow = new BrowserWindow({
     width: 1440,
@@ -148,12 +197,27 @@ function createWindow(): void {
     show: false,
     title: 'NF-Blaze',
     backgroundColor: '#0c0f14',
+    // כותרת מערכת מוסתרת: כפתורי החלון נשארים מקוריים (Snap Layouts,
+    // נגישות) אבל נצבעים בצבעי המערכת ויושבים בתוך סרגל האפליקציה.
+    // רק ב-Windows — במערכות אחרות נשארת מסגרת רגילה.
+    ...(process.platform === 'win32'
+      ? {
+          titleBarStyle: 'hidden' as const,
+          titleBarOverlay: {
+            color: '#0c0f14',
+            symbolColor: '#e8e8ea',
+            height: TITLE_BAR_HEIGHT
+          }
+        }
+      : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
-      webSecurity: true
+      webSecurity: true,
+      // בגרסה ארוזה אין DevTools — חוסם עיון בקוד ה-renderer ובתעבורת ה-IPC
+      devTools: !app.isPackaged
     }
   })
 
@@ -173,7 +237,135 @@ function createWindow(): void {
   }
 }
 
+/**
+ * ייבוא תיקייה קיימת כפרויקט — משותף לייבוא ידני ולשכפול מ-GitHub.
+ * לא נוגע בקבצים; רק מתקין תלויות אם חסרות ומרים תצוגה חיה.
+ */
+async function importExistingFolder(payload: {
+  name: string
+  description?: string
+  folderPath: string
+  provider: AiProvider
+  model?: string
+}): Promise<ProjectMeta> {
+  if (!payload.name?.trim()) throw new Error('יש להזין שם לפרויקט')
+  if (!payload.folderPath || !existsSync(payload.folderPath)) {
+    throw new Error('יש לבחור תיקייה קיימת במחשב')
+  }
+  if (!existsSync(join(payload.folderPath, 'package.json'))) {
+    throw new Error(
+      "לא נמצא package.json בתיקייה. ייבוא נתמך לפרויקטי Node/JavaScript (React, Vite, Next וכו')"
+    )
+  }
+  const already = listProjects().find(
+    (p) => p.folderPath.toLowerCase() === payload.folderPath.toLowerCase()
+  )
+  if (already) {
+    throw new Error(`התיקייה כבר מקושרת לפרויקט «${already.name}»`)
+  }
+
+  // התקנת תלויות אם חסרות — לא מעתיקים תבנית ולא נוגעים בקבצים קיימים
+  if (!existsSync(join(payload.folderPath, 'node_modules'))) {
+    const install = await installTemplateDeps(payload.folderPath)
+    if (!install.ok) throw new Error(install.summary)
+  }
+
+  const now = new Date().toISOString()
+  const saved = saveProject({
+    id: uuidv4(),
+    name: payload.name.trim(),
+    description: (payload.description || '').trim(),
+    folderPath: payload.folderPath,
+    createdAt: now,
+    updatedAt: now,
+    provider: payload.provider,
+    model: payload.model || getDefaultModel(payload.provider)
+    // templateId נשאר ריק — פרויקט מיובא
+  })
+
+  if (projectNeedsDevServer(payload.folderPath)) {
+    try {
+      await ensureLivePreview(saved.id)
+    } catch {
+      /* Workspace will retry and show status / error */
+    }
+  }
+
+  return saved
+}
+
+/**
+ * ערוצי IPC שמותרים גם בלי רישיון: הפעלת מפתח, בדיקת סביבת ריצה,
+ * גרסה, פתיחת קישור חיצוני, וקריאת הגדרות כדי שהמסך יוכל לעלות בכלל.
+ *
+ * ‏`FEEDBACK_SUBMIT` פתוח בכוונה: מי שתקוע בשער הרישיון (פג תוקף, חריגת
+ * מושבים, אין מפתח) חייב דרך לבקש רישיון או חידוש מתוך המערכת — אחרת
+ * המצב היחיד שבו הוא הכי צריך אותנו הוא בדיוק המצב שבו הוא לא יכול לפנות.
+ * ההגנה מפני ניצול היא בשרת: פנייה בלי מפתח חתום מסומנת «לא מאומתת»
+ * ומוגבלת בקצב לפי כתובת IP.
+ */
+const LICENSE_FREE_CHANNELS: ReadonlySet<string> = new Set([
+  IPC.LICENSE_STATUS,
+  IPC.LICENSE_ACTIVATE,
+  IPC.LICENSE_CLEAR,
+  IPC.LICENSE_REVALIDATE,
+  IPC.FEEDBACK_SUBMIT,
+  IPC.APP_GET_VERSION,
+  IPC.APP_RUNTIME_ENV,
+  IPC.APP_OPEN_EXTERNAL,
+  IPC.SETTINGS_GET,
+  IPC.APP_UPDATE_STATUS,
+  IPC.APP_UPDATE_CHECK,
+  IPC.APP_UPDATE_RETRY,
+  IPC.APP_UPDATE_INSTALL
+])
+
+/**
+ * הערוצים שנשארים פתוחים כשעדכון חובה ממתין — בדיוק מה שדרוש כדי
+ * להציג את שער העדכון, להוריד ולהתקין. כל השאר חסום, כך שגם עקיפה של
+ * המסך לא תפתח את המערכת.
+ */
+const UPDATE_FREE_CHANNELS: ReadonlySet<string> = new Set([
+  IPC.APP_UPDATE_STATUS,
+  IPC.APP_UPDATE_CHECK,
+  IPC.APP_UPDATE_RETRY,
+  IPC.APP_UPDATE_INSTALL,
+  // בלי זה כפתור «אחר כך» היה נחסם על ידי השומר שהוא עצמו אמור לפתוח
+  IPC.APP_UPDATE_SNOOZE,
+  IPC.APP_GET_VERSION,
+  IPC.APP_OPEN_EXTERNAL,
+  IPC.LICENSE_STATUS,
+  IPC.SETTINGS_GET
+])
+
+/**
+ * אכיפת רישיון בתהליך הראשי — לא רק במסך.
+ * מסך חסימה ב-renderer הוא UI בלבד וניתן לעקיפה; שכבת ה-IPC היא הגבול האמיתי.
+ * עוטף את `ipcMain.handle` פעם אחת, כך שכל ערוץ — כולל ערוצים שייווספו
+ * בעתיד — חסום כברירת מחדל אלא אם נכלל במפורש ב-LICENSE_FREE_CHANNELS.
+ */
+function installIpcLicenseGuard(): void {
+  const original = ipcMain.handle.bind(ipcMain)
+  ipcMain.handle = ((
+    channel: string,
+    listener: (event: Electron.IpcMainInvokeEvent, ...args: never[]) => unknown
+  ) =>
+    original(channel, (event, ...args) => {
+      // עדכון חובה קודם לכל — גם למי שהרישיון שלו תקין
+      if (isUpdateRequired() && !UPDATE_FREE_CHANNELS.has(channel)) {
+        throw new Error('נדרש עדכון גרסה כדי להמשיך')
+      }
+      if (!LICENSE_FREE_CHANNELS.has(channel)) {
+        const status = getLicenseStatus()
+        if (!status.ok) throw new Error(`נדרש מפתח רישיון · ${status.messageHe}`)
+      }
+      return listener(event, ...(args as never[]))
+    })) as typeof ipcMain.handle
+}
+
 function registerIpc(): void {
+  installIpcLicenseGuard()
+
   ipcMain.handle(IPC.SETTINGS_GET, () => {
     const settings = loadSettingsRaw()
     const keys = getKeyStatus()
@@ -190,7 +382,12 @@ function registerIpc(): void {
   })
 
   ipcMain.handle(IPC.SETTINGS_SET, (_e, partial: Partial<AppSettings>) => {
-    const { openaiApiKey: _o, anthropicApiKey: _a, geminiApiKey: _g, ...safe } = partial as AppSettings
+    const {
+      openaiApiKey: _o,
+      anthropicApiKey: _a,
+      geminiApiKey: _g,
+      ...safe
+    } = partial as AppSettings
     saveSettings(safe)
     return {
       ...loadSettingsRaw(),
@@ -212,14 +409,30 @@ function registerIpc(): void {
   ipcMain.handle(IPC.SETTINGS_HAS_KEY, (_e, provider: AiProvider) => hasApiKey(provider))
 
   ipcMain.handle(IPC.LICENSE_STATUS, () => getLicenseStatus())
-  ipcMain.handle(IPC.LICENSE_ACTIVATE, (_e, key: string) => activateLicense(key))
+  ipcMain.handle(IPC.LICENSE_ACTIVATE, async (_e, key: string) => {
+    const status = activateLicense(key)
+    // אחרי הפעלה מוצלחת — אימות מקוון מיידי, כדי לעגן זמן אמין, לתפוס ביטול,
+    // ולתפוס מושב. **ממתינים לתשובה** (עד 8 שנ' timeout) ולא מפעילים ברקע:
+    // אחרת מחשב שחורג מהמכסה היה מקבל «רישיון פעיל» ורק אז מושלך החוצה.
+    // כשל רשת מחזיר את הסטטוס המקומי — ההפעלה מצליחה, וחלון החסד הקצר
+    // עד האימות הראשון (ACTIVATION_GRACE_MS) הוא מה שאוכף השלמה מאוחרת.
+    if (status.ok) return await revalidateOnline().catch(() => status)
+    return status
+  })
   ipcMain.handle(IPC.LICENSE_CLEAR, () => clearLicense())
+  ipcMain.handle(IPC.LICENSE_REVALIDATE, () => revalidateOnline())
 
   ipcMain.handle(IPC.SECURITY_SCAN, async (_e, projectId: string) => {
     const project = getProject(projectId)
     if (!project?.folderPath) throw new Error('הפרויקט לא נמצא')
     return runPublishSecurityGate({ projectId, folderPath: project.folderPath })
   })
+
+  // משוב/דיווח — פנוי-רישיון (ראה LICENSE_FREE_CHANNELS). עם מפתח שמור
+  // הפנייה מאומתת בשרת; בלעדיו היא מסומנת «לא מאומתת» ומוגבלת בקצב לפי IP.
+  ipcMain.handle(IPC.FEEDBACK_SUBMIT, async (_e, input: FeedbackSubmitInput) =>
+    submitFeedback(input)
+  )
 
   ipcMain.handle(IPC.MCP_LIST, () => listMcpServers())
   ipcMain.handle(IPC.MCP_SAVE, (_e, entry: McpServerEntry) => saveMcpServer(entry))
@@ -239,9 +452,7 @@ function registerIpc(): void {
 
   ipcMain.handle(IPC.PROJECTS_PLAN_GET, (_e, projectId: string) => loadProjectPlan(projectId))
 
-  ipcMain.handle(IPC.PROJECTS_MEMORY_GET, (_e, projectId: string) =>
-    loadProjectMemory(projectId)
-  )
+  ipcMain.handle(IPC.PROJECTS_MEMORY_GET, (_e, projectId: string) => loadProjectMemory(projectId))
 
   ipcMain.handle(IPC.PROJECTS_PICK_FOLDER, async () => {
     const result = await dialog.showOpenDialog(mainWindow!, {
@@ -323,58 +534,47 @@ function registerIpc(): void {
         provider: AiProvider
         model?: string
       }
-    ) => {
-      if (!payload.name?.trim()) throw new Error('יש להזין שם לפרויקט')
-      if (!payload.folderPath || !existsSync(payload.folderPath)) {
-        throw new Error('יש לבחור תיקייה קיימת במחשב')
-      }
-      const hasPackageJson = existsSync(join(payload.folderPath, 'package.json'))
-      if (!hasPackageJson) {
-        throw new Error(
-          'לא נמצא package.json בתיקייה. ייבוא נתמך לפרויקטי Node/JavaScript (React, Vite, Next וכו\')'
-        )
-      }
-      const already = listProjects().find(
-        (p) => p.folderPath.toLowerCase() === payload.folderPath.toLowerCase()
-      )
-      if (already) {
-        throw new Error(`התיקייה כבר מקושרת לפרויקט «${already.name}»`)
-      }
-
-      // התקנת תלויות אם חסרות — לא מעתיקים תבנית ולא נוגעים בקבצים קיימים
-      if (!existsSync(join(payload.folderPath, 'node_modules'))) {
-        const install = await installTemplateDeps(payload.folderPath)
-        if (!install.ok) {
-          throw new Error(install.summary)
-        }
-      }
-
-      const now = new Date().toISOString()
-      const meta: ProjectMeta = {
-        id: uuidv4(),
-        name: payload.name.trim(),
-        description: (payload.description || '').trim(),
-        folderPath: payload.folderPath,
-        createdAt: now,
-        updatedAt: now,
-        provider: payload.provider,
-        model: payload.model || getDefaultModel(payload.provider)
-        // templateId נשאר ריק — פרויקט מיובא
-      }
-      const saved = saveProject(meta)
-
-      if (projectNeedsDevServer(payload.folderPath)) {
-        try {
-          await ensureLivePreview(saved.id)
-        } catch {
-          /* Workspace will retry and show status / error */
-        }
-      }
-
-      return saved
-    }
+    ) => importExistingFolder(payload)
   )
 
+  ipcMain.handle(
+    IPC.PROJECTS_IMPORT_GITHUB,
+    async (
+      _e,
+      payload: {
+        repoUrl: string
+        name?: string
+        description?: string
+        folderPath: string
+        provider: AiProvider
+        model?: string
+      }
+    ) => {
+      if (!payload.folderPath) throw new Error('יש לבחור תיקייה במחשב לשכפול')
+      const { cloneUrl, folderPath } = await cloneGithubRepo({
+        repoUrl: payload.repoUrl,
+        targetDir: payload.folderPath
+      })
+      const name = payload.name?.trim() || repoNameFromUrl(cloneUrl) || 'פרויקט מ-GitHub'
+      try {
+        return await importExistingFolder({
+          name,
+          description: payload.description,
+          folderPath,
+          provider: payload.provider,
+          model: payload.model
+        })
+      } catch (err) {
+        // הריפו כבר על הדיסק — בלי ההבהרה הזו המשתמש ינסה שוב לאותה
+        // תיקייה ויקבל «כבר מכיל ריפוזיטורי git» בלי להבין למה
+        const message = err instanceof Error ? err.message : String(err)
+        throw new Error(
+          `${message}\n\nהריפו שוכפל בהצלחה אל ${folderPath} — אפשר לפתוח אותו משם, או למחוק את התיקייה ולנסות ריפו אחר.`,
+          { cause: err }
+        )
+      }
+    }
+  )
   ipcMain.handle(IPC.PROJECTS_UPDATE, (_e, id: string, partial: Partial<ProjectMeta>) => {
     const current = getProject(id)
     if (!current) throw new Error('הפרויקט לא נמצא')
@@ -453,7 +653,10 @@ function registerIpc(): void {
   ipcMain.handle(IPC.PREVIEW_IS_VITE, (_e, projectId: string) => isViteProject(projectId))
 
   const sendPreviewEvent = (
-    sender: { send: (channel: string, payload: PreviewLiveEvent) => void; isDestroyed: () => boolean },
+    sender: {
+      send: (channel: string, payload: PreviewLiveEvent) => void
+      isDestroyed: () => boolean
+    },
     ev: PreviewLiveEvent
   ): void => {
     try {
@@ -534,7 +737,9 @@ function registerIpc(): void {
 
   ipcMain.handle(IPC.CHAT_ABORT, (_e, projectId: string) => abortChat(projectId))
 
-  ipcMain.handle(IPC.CHAT_CAN_UNDO, (_e, projectId: string) => Boolean(getLatestSnapshotId(projectId)))
+  ipcMain.handle(IPC.CHAT_CAN_UNDO, (_e, projectId: string) =>
+    Boolean(getLatestSnapshotId(projectId))
+  )
 
   ipcMain.handle(IPC.CHAT_UNDO, (_e, projectId: string) => undoLatestSnapshot(projectId))
 
@@ -577,6 +782,15 @@ function registerIpc(): void {
       if (!msg) return false
       msg.changesApproved = approved
       saveChat(session)
+      // אמון מדורג: אישור מגדיל את הרצף, ביטול מאפס אותו
+      const project = getProject(projectId)
+      if (project?.folderPath) {
+        try {
+          recordDecision(project.folderPath, approved)
+        } catch {
+          /* trust is best-effort */
+        }
+      }
       return true
     }
   )
@@ -603,6 +817,36 @@ function registerIpc(): void {
   })
 
   ipcMain.handle(IPC.INTEG_GET, (_e, projectId: string) => loadIntegrations(projectId))
+
+  ipcMain.handle(IPC.INTEG_OAUTH_CONNECT, async (_e, provider: OAuthProviderId) => {
+    if (provider !== 'github' && provider !== 'supabase' && provider !== 'vercel') {
+      throw new Error('פלטפורמה לא נתמכת')
+    }
+    return connectProviderWithOAuth(provider)
+  })
+
+  ipcMain.handle(IPC.INTEG_OAUTH_CANCEL, () => {
+    cancelOAuthFlow()
+    return { ok: true }
+  })
+
+  ipcMain.handle(IPC.INTEG_SUPABASE_ACCOUNT_STATUS, () => {
+    const account = loadSupabaseAccount()
+    return { connected: Boolean(account), orgName: account?.orgName }
+  })
+
+  ipcMain.handle(IPC.INTEG_SUPABASE_ACCOUNT_DISCONNECT, () => {
+    clearSupabaseAccount()
+    return { ok: true }
+  })
+
+  ipcMain.handle(IPC.INTEG_SUPABASE_LIST_PROJECTS, async () => listSupabaseProjects())
+
+  ipcMain.handle(
+    IPC.INTEG_SUPABASE_LINK_PROJECT,
+    async (_e, payload: { projectId: string; ref: string }) =>
+      connectSupabaseProjectFromAccount(payload)
+  )
 
   ipcMain.handle(IPC.INTEG_GITHUB_STATUS, async () => {
     const token = getGithubToken()
@@ -668,6 +912,12 @@ function registerIpc(): void {
     pushGithubProject(projectId, message)
   )
 
+  ipcMain.handle(
+    IPC.INTEG_GITHUB_PUBLISH,
+    async (_e, projectId: string, opts?: { message?: string; branchName?: string }) =>
+      publishToGithub(projectId, opts)
+  )
+
   ipcMain.handle(IPC.INTEG_GITHUB_DISCONNECT, async (_e, projectId: string) => {
     await disconnectGithub(projectId)
     return loadIntegrations(projectId)
@@ -677,9 +927,8 @@ function registerIpc(): void {
     connectSupabase(input)
   )
 
-  ipcMain.handle(
-    IPC.INTEG_SUPABASE_TEST,
-    async (_e, projectUrl: string, anonKey: string) => testSupabaseConnection(projectUrl, anonKey)
+  ipcMain.handle(IPC.INTEG_SUPABASE_TEST, async (_e, projectUrl: string, anonKey: string) =>
+    testSupabaseConnection(projectUrl, anonKey)
   )
 
   ipcMain.handle(IPC.INTEG_SUPABASE_DISCONNECT, (_e, projectId: string) => {
@@ -745,11 +994,8 @@ function registerIpc(): void {
 
   ipcMain.handle(
     IPC.INTEG_VERCEL_REDEPLOY,
-    async (
-      _e,
-      projectId: string,
-      securityOverride?: VercelDeployInput['securityOverride']
-    ) => redeployVercel(projectId, securityOverride)
+    async (_e, projectId: string, securityOverride?: VercelDeployInput['securityOverride']) =>
+      redeployVercel(projectId, securityOverride)
   )
 
   ipcMain.handle(IPC.INTEG_VERCEL_DISCONNECT, (_e, projectId: string) => {
@@ -764,6 +1010,22 @@ function registerIpc(): void {
   )
 
   ipcMain.handle(IPC.APP_GET_VERSION, () => app.getVersion())
+
+  ipcMain.handle(IPC.APP_UPDATE_STATUS, () => getUpdateState())
+  ipcMain.handle(IPC.APP_UPDATE_CHECK, async () => checkNow())
+  ipcMain.handle(IPC.APP_UPDATE_RETRY, async () => retryUpdate())
+  ipcMain.handle(IPC.APP_UPDATE_INSTALL, () => {
+    installUpdate()
+    return { ok: true }
+  })
+  ipcMain.handle(IPC.APP_UPDATE_SNOOZE, () => snoozeUpdate())
+
+  // איזו גרסה המשתמש כבר ראה — קובע אם להציג את פופ-אפ «מה חדש»
+  ipcMain.handle(IPC.APP_SEEN_VERSION_GET, () => loadSettingsRaw().lastSeenVersion || null)
+  ipcMain.handle(IPC.APP_SEEN_VERSION_SET, (_e, version: string) => {
+    saveSettings({ lastSeenVersion: String(version || '').slice(0, 32) })
+    return { ok: true }
+  })
 
   ipcMain.handle(IPC.APP_GET_PATH, () => getDataRoot())
 
@@ -805,15 +1067,36 @@ function registerIpc(): void {
 }
 
 app.whenReady().then(() => {
+  // File/Edit/View/Window/Help של Electron אינם רלוונטיים כאן —
+  // כל הפעולות נמצאות בסרגל של האפליקציה עצמה
+  Menu.setApplicationMenu(null)
+  // חייב לרוץ לפני כל שימוש ב-Playwright — מפנה לדפדפן המצורף
+  configureBundledBrowser()
   registerPreviewProtocol()
   registerIpc()
   createWindow()
   startAutoUpdates()
+  startLicenseRevalidation()
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
 })
+
+/**
+ * אימות מקוון של הרישיון: בעלייה, ואז כל 5 דקות ברקע.
+ *
+ * מ-1.66.0 חלון החסד הוא 15 דקות, ולכן המחזור הזה הוא מה שמחזיק את המשתמש
+ * בפנים: שלושה ניסיונות לפני שהוא נחסם. אימות מוצלח מרענן עוגן זמן אמין
+ * (שעון השרת החתום), תופס ביטול מרחוק, ומאשר את המושב.
+ */
+function startLicenseRevalidation(): void {
+  void revalidateOnline().catch(() => undefined)
+  setInterval(
+    () => void revalidateOnline().catch(() => undefined),
+    LICENSE_REVALIDATE_INTERVAL_MS
+  )
+}
 
 app.on('before-quit', () => {
   stopAllLivePreviews()

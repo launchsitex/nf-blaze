@@ -18,10 +18,7 @@ import { loadSettingsRaw } from '../storage'
 import { getProject } from '../storage'
 import { loadIntegrations, updateIntegrations } from './store'
 import { packProjectSource, type FrameworkSettings } from './vercel_pack'
-import {
-  formatFindingsForAgent,
-  runPublishSecurityGate
-} from '../security'
+import { formatFindingsForAgent, runPublishSecurityGate } from '../security'
 
 const API = 'https://api.vercel.com'
 
@@ -97,6 +94,12 @@ async function vercelFetch<T>(
     const errObj = json as { error?: { message?: string }; message?: string } | null
     const msg =
       errObj?.error?.message || errObj?.message || text.slice(0, 400) || `HTTP ${res.status}`
+    // כותרת בעברית לפני הפירוט — «Not authorized» לבדו לא אומר למשתמש מה לעשות
+    if (res.status === 401 || res.status === 403) {
+      throw new Error(
+        `Vercel דחה את הטוקן (${res.status}). צור טוקן חדש ב-vercel.com/account/tokens ווודא שיש לו גישה לצוות הנכון. (${msg})`
+      )
+    }
     throw new Error(`Vercel API (${res.status}): ${msg}`)
   }
   return json as T
@@ -339,9 +342,7 @@ export async function fetchDeploymentBuildLog(
       teamId
     })
     if (Array.isArray(events)) {
-      const lines = events
-        .map((e) => e.text || e.payload?.text || '')
-        .filter(Boolean)
+      const lines = events.map((e) => e.text || e.payload?.text || '').filter(Boolean)
       if (lines.length) return lines.join('\n')
     }
   } catch {
@@ -390,7 +391,8 @@ function slugifyName(name: string): string {
       .toLowerCase()
       .replace(/[^a-z0-9._-]+/g, '-')
       .replace(/^-+|-+$/g, '')
-      .slice(0, 52) || `nf-blaze-${createHash('sha1').update(String(Date.now())).digest('hex').slice(0, 8)}`
+      .slice(0, 52) ||
+    `nf-blaze-${createHash('sha1').update(String(Date.now())).digest('hex').slice(0, 8)}`
   )
 }
 

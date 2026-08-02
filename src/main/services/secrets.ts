@@ -44,12 +44,18 @@ function readSecret(slot: KeySlot): string | null {
   if (!existsSync(path)) return null
   try {
     const buf = readFileSync(path)
+    const encryption = safeStorage.isEncryptionAvailable()
     if (buf.subarray(0, 6).toString('utf-8') === 'plain:') {
-      return buf.subarray(6).toString('utf-8')
+      /*
+       * ‏`plain:` מתקבל **רק** כשההצפנה של מערכת ההפעלה אינה זמינה — כלומר
+       * במצב ה-fallback שבו הוא גם נכתב. קודם הוא התקבל תמיד, וזה אפשר
+       * לכל אחד לשתול קובץ סוד שהאפליקציה מקבלת בלי לעבור דרך safeStorage
+       * — כולל את קובצי מצב הרישיון, שה-HMAC שלהם נגזר מערכים ידועים.
+       */
+      if (!encryption) return buf.subarray(6).toString('utf-8')
+      return null
     }
-    if (safeStorage.isEncryptionAvailable()) {
-      return safeStorage.decryptString(buf)
-    }
+    if (encryption) return safeStorage.decryptString(buf)
     return null
   } catch {
     return null
@@ -154,4 +160,9 @@ export function supabaseAnonSlot(projectId: string): string {
 
 export function supabaseServiceSlot(projectId: string): string {
   return `supabase-service-${projectId}`
+}
+
+/** Personal Access Token לגישת הסוכן ל-Management API (הרצת SQL) */
+export function supabaseMgmtSlot(projectId: string): string {
+  return `supabase-mgmt-${projectId}`
 }

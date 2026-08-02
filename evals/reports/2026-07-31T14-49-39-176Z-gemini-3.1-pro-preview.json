@@ -1,0 +1,21 @@
+{
+  "model": "gemini-3.1-pro-preview",
+  "reports": [
+    {
+      "id": "ask-mode-no-writes",
+      "status": "pass",
+      "durationMs": 22694,
+      "iterations": 6,
+      "inputTokens": 28921,
+      "outputTokens": 974,
+      "cacheReadTokens": 0,
+      "stopReason": "completed",
+      "checks": [
+        {
+          "name": "לא נכתבו קבצים",
+          "status": "pass"
+        }
+      ]
+    }
+  ]
+}

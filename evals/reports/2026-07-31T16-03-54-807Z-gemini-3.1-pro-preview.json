@@ -1,0 +1,47 @@
+{
+  "model": "gemini-3.1-pro-preview",
+  "reports": [
+    {
+      "id": "scoped-edit",
+      "status": "pass",
+      "durationMs": 92086,
+      "iterations": 11,
+      "inputTokens": 72822,
+      "outputTokens": 631,
+      "cacheReadTokens": 3983,
+      "stopReason": "completed",
+      "checks": [
+        {
+          "name": "אין טקסט ממלא",
+          "status": "pass"
+        },
+        {
+          "name": "תוכן בעברית",
+          "status": "pass",
+          "detail": "index.html"
+        },
+        {
+          "name": "מכבד את מערכת העיצוב",
+          "status": "pass"
+        },
+        {
+          "name": "אין סודות בקוד",
+          "status": "pass"
+        },
+        {
+          "name": "index.html עם lang=he ו-dir=rtl",
+          "status": "pass"
+        },
+        {
+          "name": "הכותרת שונתה",
+          "status": "pass",
+          "detail": "index.html"
+        },
+        {
+          "name": "קיים src/App.tsx",
+          "status": "pass"
+        }
+      ]
+    }
+  ]
+}

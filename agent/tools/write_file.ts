@@ -19,7 +19,7 @@ export const writeFileTool: ToolHandler = async (args, ctx) => {
     assertInScope(ctx.session, args.path)
 
     // Pre-write validation (packages, local imports, component props)
-    assertWritableContent(ctx.rootDir, args.path, args.content)
+    assertWritableContent(ctx.rootDir, args.path, args.content, ctx.session)
 
     const full = resolveInRoot(ctx.rootDir, args.path)
     mkdirSync(dirname(full), { recursive: true })

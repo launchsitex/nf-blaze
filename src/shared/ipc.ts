@@ -9,10 +9,14 @@ export const IPC = {
   // Security scan (on-demand, from the אבטחה tab)
   SECURITY_SCAN: 'security:scan',
 
+  // משוב ודיווח באגים → פורטל הרישיונות
+  FEEDBACK_SUBMIT: 'feedback:submit',
+
   // License
   LICENSE_STATUS: 'license:status',
   LICENSE_ACTIVATE: 'license:activate',
   LICENSE_CLEAR: 'license:clear',
+  LICENSE_REVALIDATE: 'license:revalidate',
 
   // MCP servers (global mcp.json)
   MCP_LIST: 'mcp:list',
@@ -24,6 +28,7 @@ export const IPC = {
   PROJECTS_LIST: 'projects:list',
   PROJECTS_CREATE: 'projects:create',
   PROJECTS_IMPORT: 'projects:import',
+  PROJECTS_IMPORT_GITHUB: 'projects:import-github',
 
   // Version history (restore points)
   SNAPSHOTS_LIST: 'snapshots:list',
@@ -83,8 +88,21 @@ export const IPC = {
   PREVIEW_LIVE_EVENT: 'preview:live-event',
   PREVIEW_IS_VITE: 'preview:is-vite',
 
+  // עדכוני גרסה
+  APP_UPDATE_STATUS: 'app:update-status',
+  APP_UPDATE_CHECK: 'app:update-check',
+  APP_UPDATE_RETRY: 'app:update-retry',
+  APP_UPDATE_INSTALL: 'app:update-install',
+  APP_UPDATE_SNOOZE: 'app:update-snooze',
+  APP_UPDATE_EVENT: 'app:update-event',
+  APP_SEEN_VERSION_GET: 'app:seen-version-get',
+  APP_SEEN_VERSION_SET: 'app:seen-version-set',
+
   // Integrations — GitHub / Supabase
   INTEG_GET: 'integ:get',
+  // חיבור חשבון בלחיצה אחת (OAuth) — משותף לשלוש הפלטפורמות
+  INTEG_OAUTH_CONNECT: 'integ:oauth-connect',
+  INTEG_OAUTH_CANCEL: 'integ:oauth-cancel',
   INTEG_GITHUB_SET_TOKEN: 'integ:github-set-token',
   INTEG_GITHUB_CLEAR_TOKEN: 'integ:github-clear-token',
   INTEG_GITHUB_STATUS: 'integ:github-status',
@@ -95,10 +113,15 @@ export const IPC = {
   INTEG_GITHUB_CREATE_REPO: 'integ:github-create-repo',
   INTEG_GITHUB_LINK: 'integ:github-link',
   INTEG_GITHUB_PUSH: 'integ:github-push',
+  INTEG_GITHUB_PUBLISH: 'integ:github-publish',
   INTEG_GITHUB_DISCONNECT: 'integ:github-disconnect',
   INTEG_SUPABASE_CONNECT: 'integ:supabase-connect',
   INTEG_SUPABASE_TEST: 'integ:supabase-test',
   INTEG_SUPABASE_DISCONNECT: 'integ:supabase-disconnect',
+  INTEG_SUPABASE_ACCOUNT_STATUS: 'integ:supabase-account-status',
+  INTEG_SUPABASE_ACCOUNT_DISCONNECT: 'integ:supabase-account-disconnect',
+  INTEG_SUPABASE_LIST_PROJECTS: 'integ:supabase-list-projects',
+  INTEG_SUPABASE_LINK_PROJECT: 'integ:supabase-link-project',
 
   INTEG_VERCEL_STATUS: 'integ:vercel-status',
   INTEG_VERCEL_SET_TOKEN: 'integ:vercel-set-token',

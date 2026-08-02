@@ -18,7 +18,7 @@ export function nfSourcePlugin(options = {}) {
       root = config.root || root
       enabled = config.command === 'serve'
     },
-    transform(code, id) {
+    async transform(code, id) {
       if (!enabled) return null
       if (id.includes('node_modules')) return null
       const clean = id.split('?')[0]
@@ -28,7 +28,8 @@ export function nfSourcePlugin(options = {}) {
       if (rel.startsWith('..')) rel = path.basename(clean)
 
       try {
-        return transformJsxSource(code, rel)
+        // מחזיר null אם babel לא זמין — הבורר עדיין עובד דרך client script
+        return await transformJsxSource(code, rel)
       } catch (err) {
         this.warn(
           `[nf-blaze-source] transform failed for ${rel}: ${

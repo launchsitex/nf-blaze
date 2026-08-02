@@ -81,17 +81,39 @@ button {
   flex-direction: column;
 }
 
+/*
+ * הסרגל הזה **הוא** כותרת החלון: כותרת המערכת מוסתרת, וכפתורי המזעור/
+ * הגדלה/סגירה מצוירים מעליו בצבעי המערכת. הגובה חייב להישאר 56px —
+ * הוא מסונכרן עם TITLE_BAR_HEIGHT ב-src/main/index.ts.
+ */
 .topbar {
   height: 56px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 20px;
+  /*
+   * מקום לכפתורי החלון. Electron ממקם אותם לפי כיווניות הממשק —
+   * בעברית (RTL) הם בצד שמאל — ולכן דווקא התכונה הלוגית היא הנכונה כאן.
+   * אומת ויזואלית: עם padding-right כפתור «פרויקט חדש» נחתך מתחתיהם.
+   */
+  padding-inline-end: 160px;
   border-bottom: 1px solid var(--border);
   background: rgba(12, 15, 20, 0.85);
   backdrop-filter: blur(12px);
   flex-shrink: 0;
   z-index: 20;
+  /* גרירת החלון מכל שטח ריק בסרגל */
+  -webkit-app-region: drag;
+  user-select: none;
+}
+
+/* כל דבר לחיץ חייב לצאת מאזור הגרירה, אחרת הוא לא מגיב ללחיצה */
+.topbar button,
+.topbar a,
+.topbar select,
+.topbar input {
+  -webkit-app-region: no-drag;
 }
 
 .brand {
@@ -125,6 +147,17 @@ button {
   color: var(--text-muted);
   font-size: 0.78rem;
   font-weight: 400;
+}
+
+/* שם בעל הרישיון בסרגל העליון — «ברוך הבא <שם>» */
+.welcome-name {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  padding-inline-end: 4px;
+  white-space: nowrap;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .topbar-actions {
@@ -494,7 +527,8 @@ button {
 .workspace {
   height: 100%;
   display: grid;
-  grid-template-columns: 380px 1fr 300px;
+  /* הצ'אט רחב מספיק לשורת הפעולות המלאה — ב-380px האייקונים נחתכו */
+  grid-template-columns: 440px 1fr 300px;
   grid-template-rows: minmax(0, 1fr) auto;
   min-height: 0;
 }
@@ -688,6 +722,38 @@ button {
   text-align: left;
 }
 
+/*
+ * «פתח בדפדפן» — יושב בתוך סרגל הכתובת, בקצה. מעוצב כאייקון שקוף שנצבע
+ * במעבר עכבר, כמו בסרגלי כתובת של דפדפנים, ולא ככפתור מלא שיתחרה על
+ * תשומת הלב עם הכתובת עצמה.
+ */
+.address-open {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+.address-open:hover:not(:disabled) {
+  background: var(--accent-soft);
+  color: var(--accent-hot);
+}
+
+.address-open:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
 .stat-add {
   color: var(--success);
   font-size: 0.7rem;
@@ -800,6 +866,23 @@ button {
   justify-content: space-between;
   gap: 8px;
   flex-shrink: 0;
+  /* בלי זה שורת הפעולות נדחקת מחוץ לפאנל במקום לרדת שורה */
+  flex-wrap: wrap;
+}
+
+/* בלוק הכותרת חייב להיות מסוגל להתכווץ, אחרת הוא דוחף את הכפתורים החוצה */
+.panel-head > div:first-child {
+  min-width: 0;
+}
+
+/* שורת הפעולות של הצ'אט — יורדת שורה בשלמותה במקום להיחתך */
+.panel-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  margin-inline-start: auto;
 }
 
 .panel-head h3 {
@@ -927,6 +1010,71 @@ button {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+}
+
+/* קישור «מאיפה משיגים את הפרטים» ליד כל חיבור */
+.connect-link {
+  margin-inline-start: auto;
+  color: var(--accent-hot);
+  font-size: 0.78rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.connect-link:hover {
+  text-decoration: underline;
+}
+
+/* טאבים בעמוד ההגדרות — נצמדים למעלה כדי שלא יאבדו בגלילה */
+.settings-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  align-self: flex-start;
+  max-width: 100%;
+  overflow-x: auto;
+  margin-bottom: 14px;
+  backdrop-filter: blur(6px);
+}
+
+.settings-tabs .seg-tab {
+  white-space: nowrap;
+  padding: 6px 14px;
+  font-size: 0.82rem;
+}
+
+/* «בסיס ירוק» — התראה על שבירה של מה שעבד לפני הסבב */
+.regression-card {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border: 1px solid rgba(230, 162, 60, 0.45);
+  border-radius: 8px;
+  background: rgba(230, 162, 60, 0.1);
+  font-size: 0.78rem;
+}
+
+.regression-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--warning, #e6a23c);
+}
+
+.regression-list {
+  margin: 6px 0 0;
+  padding-inline-start: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.regression-hint {
+  margin-top: 6px;
+  opacity: 0.75;
 }
 
 .file-chip {
@@ -1982,11 +2130,512 @@ button {
   }
 }
 
+/* ═══ חיווי עדכון בסרגל העליון ═══ */
+
+.update-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 0.79rem;
+  white-space: nowrap;
+  cursor: default;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    color 0.15s;
+}
+
+/* מוכן להתקנה = פעולה שהמשתמש יכול לבצע, ולכן בולט וניתן ללחיצה */
+.update-pill.ready {
+  border-color: rgba(232, 160, 74, 0.55);
+  background: var(--accent-soft);
+  color: var(--accent-hot);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.update-pill.ready:hover:not(:disabled) {
+  background: rgba(232, 160, 74, 0.22);
+}
+
+.update-pill:disabled {
+  cursor: default;
+}
+
+.update-pill-sub {
+  color: var(--text-dim);
+  font-weight: 400;
+}
+
+/* ═══ מרכז העזרה ═══ */
+
+/* כפתור מרובע לאייקון בלבד — הסרגל העליון צר מדי לעוד תווית */
+.btn-icon {
+  padding: 0;
+  width: 34px;
+  min-width: 34px;
+  justify-content: center;
+}
+
+.help-modal {
+  width: min(920px, 100%);
+  max-height: min(86vh, 760px);
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+
+.help-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.help-head-mark {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  background: var(--accent-soft);
+  border: 1px solid rgba(232, 160, 74, 0.3);
+  color: var(--accent-hot);
+}
+
+.help-head-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.help-head-text h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.help-head-text .sub {
+  margin: 3px 0 0;
+}
+
+.help-version {
+  background: var(--accent-soft);
+  color: var(--accent-hot);
+  white-space: nowrap;
+}
+
+.help-body {
+  display: grid;
+  grid-template-columns: 224px 1fr;
+  flex: 1;
+  min-height: 0;
+}
+
+.help-nav {
+  border-inline-end: 1px solid var(--border);
+  background: var(--bg-elevated);
+  padding: 14px 10px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.help-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 9px 11px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 0.87rem;
+  text-align: start;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+.help-nav-item:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.help-nav-item.active {
+  background: var(--accent-soft);
+  color: var(--accent-hot);
+  font-weight: 600;
+}
+
+.help-nav-item svg {
+  flex: none;
+}
+
+.help-nav-sep {
+  margin: 14px 11px 6px;
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  letter-spacing: 0.04em;
+}
+
+.help-content {
+  padding: 22px 26px 26px;
+  overflow-y: auto;
+}
+
+.help-content-title {
+  margin: 0 0 6px;
+  font-family: var(--font-brand);
+  font-size: 1.2rem;
+}
+
+.help-intro {
+  margin: 0 0 20px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.65;
+}
+
+.help-sub-title {
+  margin: 26px 0 10px;
+  font-size: 0.95rem;
+}
+
+.help-items {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.help-item {
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+}
+
+.help-item h4 {
+  margin: 0 0 6px;
+  font-size: 0.94rem;
+  color: var(--text);
+}
+
+.help-item p {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.72;
+  color: var(--text-muted);
+}
+
+.help-facts {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--border);
+}
+
+.help-facts > div {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: 12px;
+  padding: 11px 16px;
+  background: var(--bg-elevated);
+}
+
+.help-facts dt {
+  color: var(--text-dim);
+  font-size: 0.84rem;
+}
+
+.help-facts dd {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--text);
+}
+
+.help-datapath {
+  margin-top: 12px;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.help-datapath > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.help-datapath-label {
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  margin-bottom: 4px;
+}
+
+.help-datapath code {
+  display: block;
+  direction: ltr;
+  text-align: left;
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  word-break: break-all;
+}
+
+.help-shortcuts {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.help-shortcuts li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.87rem;
+  color: var(--text-muted);
+}
+
+.help-shortcuts kbd {
+  min-width: 116px;
+  padding: 4px 9px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--bg-input);
+  color: var(--text);
+  font-family: Consolas, monospace;
+  font-size: 0.76rem;
+  text-align: center;
+}
+
+.help-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.help-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 13px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 0.84rem;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    color 0.15s;
+}
+
+.help-link:hover {
+  border-color: rgba(232, 160, 74, 0.5);
+  color: var(--accent-hot);
+}
+
+.help-foot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 24px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  font-size: 0.87rem;
+  flex-shrink: 0;
+}
+
+.help-foot .btn {
+  margin-inline-start: auto;
+}
+
+/* ═══ משוב ודיווח ═══ */
+
+.feedback-modal {
+  width: min(580px, 100%);
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.feedback-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  flex-shrink: 0;
+}
+
+.feedback-head-mark {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  background: var(--accent-soft);
+  border: 1px solid rgba(232, 160, 74, 0.3);
+  color: var(--accent-hot);
+}
+
+.feedback-body {
+  margin-top: 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.feedback-kinds {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.feedback-kind {
+  padding: 10px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 0.87rem;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background 0.15s,
+    color 0.15s;
+}
+
+.feedback-kind:hover {
+  color: var(--text);
+}
+
+.feedback-kind.active {
+  border-color: rgba(232, 160, 74, 0.55);
+  background: var(--accent-soft);
+  color: var(--accent-hot);
+  font-weight: 600;
+}
+
+.feedback-hint {
+  margin: 8px 0 0;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  line-height: 1.55;
+}
+
+.feedback-message {
+  min-height: 132px;
+  resize: vertical;
+}
+
+.feedback-count {
+  margin-top: 5px;
+  text-align: start;
+  font-size: 0.74rem;
+  color: var(--text-dim);
+}
+
+.feedback-meta {
+  padding: 11px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  color: var(--text-dim);
+  font-size: 0.79rem;
+  line-height: 1.65;
+}
+
+.feedback-meta strong {
+  color: var(--text-muted);
+}
+
+.feedback-error {
+  padding: 10px 14px;
+  border: 1px solid rgba(232, 93, 93, 0.4);
+  border-radius: var(--radius-sm);
+  background: rgba(232, 93, 93, 0.12);
+  color: #ff9a94;
+  font-size: 0.85rem;
+  line-height: 1.55;
+}
+
+.feedback-sent-mark {
+  width: 60px;
+  height: 60px;
+  margin: 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(61, 186, 126, 0.14);
+  border: 1px solid rgba(61, 186, 126, 0.4);
+  color: var(--success);
+}
+
 @media (max-width: 1100px) {
   .workspace {
-    grid-template-columns: 340px 1fr;
+    grid-template-columns: 400px 1fr;
   }
   .panel-files {
     display: none;
+  }
+}
+
+/*
+ * הסף כאן נמוך מזה של סביבת העבודה בכוונה: החלון של מרכז העזרה רחב 920px,
+ * והוא נכנס בנוחות גם ברוחב החלון המינימלי של המערכת (1100px). פירוק לעמודה
+ * אחת כבר שם היה מבזבז את כל הרוחב הפנוי.
+ */
+@media (max-width: 760px) {
+  /* מסך צר — התפריט של העזרה עובר לשורה עליונה גוללת */
+  .help-body {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+  .help-nav {
+    flex-direction: row;
+    overflow-x: auto;
+    border-inline-end: none;
+    border-bottom: 1px solid var(--border);
+    padding: 10px;
+  }
+  .help-nav-item {
+    width: auto;
+    white-space: nowrap;
+  }
+  .help-nav-sep {
+    display: none;
+  }
+  .help-facts > div {
+    grid-template-columns: 1fr;
+    gap: 3px;
+  }
+  .feedback-kinds {
+    grid-template-columns: 1fr;
   }
 }

@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>הצהרת נגישות · NF-Blaze</title>
+    <meta name="description" content="הצהרת הנגישות של אתר NF-Blaze — רמת ההנגשה, דרכי פנייה, ודיווח על ליקוי." />
+    <meta name="theme-color" content="#07090d" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://nf-blaze.dev/accessibility.html" />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&family=Syne:wght@700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="a11y.css" />
+  </head>
+
+  <body>
+    <script src="sprite.js"></script>
+    <a class="skip-link" href="#main-content">דלג לתוכן הראשי</a>
+
+    <nav class="nav" id="nav">
+      <div class="wrap">
+        <a class="brand" href="/" aria-label="NF-Blaze — לעמוד הבית">
+          <svg class="brand-mark" aria-hidden="true"><use href="#i-brand" /></svg>
+          NF-Blaze
+        </a>
+        <div class="nav-links">
+          <a href="/#capabilities">יכולות</a>
+          <a href="/#integrations">חיבורים</a>
+          <a href="/guides/">מדריכים</a>
+          <a href="/#download">הורדה</a>
+        </div>
+        <a class="btn btn-primary nav-cta" href="/#license">
+          <svg class="ic" aria-hidden="true"><use href="#i-key" /></svg>
+          בקשת רישיון
+        </a>
+        <button class="nav-toggle" id="navToggle" aria-label="תפריט" aria-expanded="false">
+          <svg class="ic" aria-hidden="true"><use href="#i-menu" /></svg>
+        </button>
+      </div>
+    </nav>
+
+    <div class="mobile-menu" id="mobileMenu">
+      <a href="/#capabilities">יכולות</a>
+      <a href="/#integrations">חיבורים</a>
+      <a href="/guides/">מדריכים</a>
+      <a href="/#download">הורדה</a>
+      <a href="/privacy.html">מדיניות פרטיות</a>
+      <a href="/terms.html">תקנון</a>
+      <a class="btn btn-primary" href="/#license">
+        <svg class="ic" aria-hidden="true"><use href="#i-key" /></svg>
+        בקשת רישיון
+      </a>
+    </div>
+
+    <main id="main-content">
+      <section class="guide-hero">
+        <div class="aurora" aria-hidden="true"><div class="blob blob-1"></div></div>
+        <div class="wrap">
+          <div class="crumb">
+            <a href="/">ראשי</a>
+            <span class="sep">←</span>
+            <span>הצהרת נגישות</span>
+          </div>
+          <h1>הצהרת נגישות</h1>
+          <p class="legal-updated">
+            <svg class="ic" style="width: 15px; height: 15px" aria-hidden="true">
+              <use href="#i-clock" />
+            </svg>
+            עודכן לאחרונה: 2 באוגוסט 2026
+          </p>
+        </div>
+      </section>
+
+      <section style="padding-top: 0">
+        <div class="wrap">
+          <div class="legal">
+            <p>
+              אנו רואים חשיבות רבה במתן שירות שוויוני לכלל המשתמשים, ופועלים להנגיש את אתר
+              <strong>nf-blaze.dev</strong> כך שיהיה שמיש עבור אנשים עם מוגבלות, לרבות משתמשי
+              טכנולוגיות מסייעות.
+            </p>
+
+            <div class="legal-toc">
+              <strong>תוכן העניינים</strong>
+              <ol>
+                <li><a href="#level">רמת הנגישות באתר</a></li>
+                <li><a href="#done">מה הונגש בפועל</a></li>
+                <li><a href="#tool">תפריט הנגישות</a></li>
+                <li><a href="#limits">חלקים שטרם הונגשו במלואם</a></li>
+                <li><a href="#contact">רכז הנגישות ודרכי פנייה</a></li>
+                <li><a href="#report">דיווח על ליקוי נגישות</a></li>
+              </ol>
+            </div>
+
+            <h2 id="level">רמת הנגישות באתר</h2>
+            <p>
+              האתר הונגש בהתאם ל<strong>תקן ישראלי ת"י 5568 חלק 1</strong> (מהדורת ספטמבר 2023),
+              המבוסס על הנחיות
+              <span dir="ltr">WCAG 2.0</span> של ארגון <span dir="ltr">W3C</span>, ברמת התאמה
+              <strong>AA</strong> — כנדרש בתקנות שוויון זכויות לאנשים עם מוגבלות (התאמות נגישות
+              לשירות), התשע"ג-2013.
+            </p>
+            <p>
+              ההנגשה בוצעה <strong>בקוד המקור של האתר עצמו</strong>, ולא באמצעות תוסף חיצוני.
+              נבדקו, בין היתר, יחסי ניגודיות, ניווט מלא במקלדת, מבנה כותרות היררכי, תוויות
+              לשדות טופס, וטקסט חלופי.
+            </p>
+
+            <h2 id="done">מה הונגש בפועל</h2>
+            <ul>
+              <li>
+                <strong>ניגודיות צבעים</strong> — כל הטקסטים באתר עומדים ביחס של 4.5:1 לפחות מול
+                הרקע (ולפחות 3:1 בטקסט גדול), כנדרש בסעיף 1.4.3.
+              </li>
+              <li>
+                <strong>ניווט מלא במקלדת</strong> — כל הקישורים, הכפתורים ושדות הטופס נגישים
+                באמצעות מקש <span dir="ltr">Tab</span>, עם סימון מיקוד ברור ובולט. אין «מלכודות
+                מיקוד».
+              </li>
+              <li>
+                <strong>קישור «דלג לתוכן הראשי»</strong> בראש כל עמוד, המאפשר לדלג על תפריט
+                הניווט.
+              </li>
+              <li>
+                <strong>מבנה כותרות היררכי</strong> — שימוש בתגיות כותרת לפי סדר, בלי דילוגי
+                רמה (סעיף 2.4.10, המחייב ברמה AA בתקן הישראלי).
+              </li>
+              <li>
+                <strong>תוויות לשדות טופס</strong> — לכל שדה תווית מקושרת, ושדות חובה מסומנים
+                גם בטקסט ולא בצבע בלבד.
+              </li>
+              <li>
+                <strong>שפה וכיווניות</strong> — האתר מוגדר כעברית בכיוון מימין לשמאל, כך שקורא
+                מסך מקריא אותו נכון.
+              </li>
+              <li>
+                <strong>הגדלת טקסט</strong> — האתר תומך בהגדלה של עד 200% באמצעות מנגנון הזום של
+                הדפדפן, בלי אובדן תוכן או פונקציונליות.
+              </li>
+              <li>
+                <strong>העדפת תנועה מופחתת</strong> — משתמש שהגדיר במערכת ההפעלה שלו העדפה
+                לצמצום אנימציות, יקבל את האתר ללא תנועה.
+              </li>
+              <li>
+                <strong>מבנה סמנטי</strong> — שימוש בתגיות אזור (<span dir="ltr">nav, main,
+                footer</span>) לניווט מהיר בקורא מסך.
+              </li>
+            </ul>
+
+            <h2 id="tool">תפריט הנגישות</h2>
+            <p>
+              בפינת המסך קיים כפתור נגישות הפותח תפריט התאמות אישיות: הגדלה והקטנה של הטקסט,
+              ניגודיות גבוהה, גווני אפור, הדגשת קישורים, גופן קריא, ריווח שורות מוגדל, עצירת
+              אנימציות וסמן עכבר גדול. ההעדפות נשמרות בדפדפן שלך בלבד.
+            </p>
+            <div class="callout info">
+              <svg class="ic" aria-hidden="true"><use href="#i-shield" /></svg>
+              <div>
+                <h3 class="callout-h">הבהרה חשובה</h3>
+                <p>
+                  תפריט הנגישות הוא <strong>שכבת נוחות נוספת בלבד</strong>, ואינו הבסיס להנגשת
+                  האתר. ההתאמות הנדרשות בתקן בוצעו בקוד האתר עצמו. אנו מציינים זאת במפורש משום
+                  שתוסף נגישות כשלעצמו אינו מקיים את דרישות התקן.
+                </p>
+              </div>
+            </div>
+
+            <h2 id="limits">חלקים שטרם הונגשו במלואם</h2>
+            <p>
+              למרות מאמצינו להנגיש כל עמוד באתר, ייתכנו חלקים שטרם הונגשו במלואם או שנמצאים
+              בתהליך הנגשה:
+            </p>
+            <ul>
+              <li>
+                <strong>תכנים של צד שלישי</strong> — קישורים מהאתר לאתרים חיצוניים (למשל אתרי
+                הספקים שבמדריכים) מובילים לאתרים שאינם בשליטתנו, ואיננו אחראים לרמת הנגישות בהם.
+              </li>
+              <li>
+                <strong>גופנים חיצוניים</strong> — האתר טוען גופנים משירות
+                <span dir="ltr">Google Fonts</span>. אם הטעינה נכשלת, מוצג גופן מערכת חלופי.
+              </li>
+            </ul>
+            <p>
+              אנו ממשיכים במאמצים לשפר את נגישות האתר, כחלק ממחויבותנו לאפשר שימוש בו לכלל
+              האוכלוסייה.
+            </p>
+
+            <h2 id="contact">רכז הנגישות ודרכי פנייה</h2>
+            <p>
+              לפניות בנושא נגישות — לרבות בקשה להתאמה, שאלה, או דיווח על קושי בשימוש באתר:
+            </p>
+            <dl>
+              <dt>שם רכז הנגישות</dt>
+              <dd>[[שם מלא — למלא]]</dd>
+              <dt>דואר אלקטרוני</dt>
+              <dd><a href="mailto:Info@nf-blaze.dev">Info@nf-blaze.dev</a></dd>
+              <dt>טלפון</dt>
+              <dd>[[מספר טלפון — למלא]]</dd>
+              <dt>כתובת למשלוח דואר</dt>
+              <dd>[[כתובת — למלא]]</dd>
+            </dl>
+
+            <h2 id="report">דיווח על ליקוי נגישות</h2>
+            <p>
+              אם נתקלת בבעיית נגישות באתר, נשמח שתדווח לנו דרך אחת מדרכי הפנייה שלמעלה. בפנייה
+              יעזרו לנו הפרטים הבאים:
+            </p>
+            <ul>
+              <li>כתובת העמוד שבו נתקלת בבעיה</li>
+              <li>תיאור קצר של הקושי</li>
+              <li>סוג המכשיר, הדפדפן וטכנולוגיית הסיוע שבשימוש (אם רלוונטי)</li>
+            </ul>
+            <p>
+              נטפל בפנייה בהקדם האפשרי, ונעדכן אותך בטיפול. אם לא נמצא פתרון מלא, נציע דרך חלופית
+              לקבלת השירות.
+            </p>
+
+            <div class="callout ok">
+              <svg class="ic" aria-hidden="true"><use href="#i-check" /></svg>
+              <div>
+                <h3 class="callout-h">נציבות שוויון זכויות לאנשים עם מוגבלות</h3>
+                <p>
+                  אם הפנייה לא נענתה לשביעות רצונך, ניתן לפנות לנציבות שוויון זכויות לאנשים עם
+                  מוגבלות במשרד המשפטים —
+                  <a href="https://www.gov.il/he/departments/equality_commission" target="_blank" rel="noopener">
+                    gov.il/equality_commission</a
+                  >.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="wrap">
+        <div class="foot-grid">
+          <div>
+            <a class="brand" href="/">
+              <svg class="brand-mark" aria-hidden="true"><use href="#i-brand" /></svg>
+              NF-Blaze
+            </a>
+            <p>סביבת פיתוח עם AI בעברית, שרצה על המחשב שלך.</p>
+          </div>
+          <div class="foot-col">
+            <h3>העמוד</h3>
+            <a href="/#capabilities">יכולות</a>
+            <a href="/#integrations">חיבורים</a>
+            <a href="/guides/">מדריכים</a>
+          </div>
+          <div class="foot-col">
+            <h3>מידע משפטי</h3>
+            <a href="/privacy.html">מדיניות פרטיות</a>
+            <a href="/terms.html">תקנון ותנאי שימוש</a>
+            <a href="/accessibility.html">הצהרת נגישות</a>
+          </div>
+          <div class="foot-col">
+            <h3>יצירת קשר</h3>
+            <a href="mailto:Info@nf-blaze.dev">Info@nf-blaze.dev</a>
+            <a href="/#license">בקשת רישיון</a>
+          </div>
+        </div>
+        <div class="foot-bottom">
+          <span>© <span id="year">2026</span> NF-Blaze · כל הזכויות שמורות</span>
+          <span>nf-blaze.dev</span>
+        </div>
+      </div>
+    </footer>
+
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+    <script src="a11y.js"></script>
+  </body>
+</html>

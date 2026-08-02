@@ -6,8 +6,12 @@
  */
 import type { ToolCall, ToolDefinition, UnifiedMessage } from '../types'
 import { parseToolArguments } from '../resolve'
+import { pickCacheBreakpoints } from '../cache'
 
-export type AnthropicContentBlock =
+/** סמן מטמון של Anthropic — נדבק לבלוק האחרון של קטע יציב */
+export type CacheControl = { type: 'ephemeral' }
+
+export type AnthropicContentBlock = (
   | { type: 'text'; text: string }
   | { type: 'tool_use'; id: string; name: string; input: Record<string, unknown> }
   | {
@@ -16,14 +20,15 @@ export type AnthropicContentBlock =
       content: string
       is_error?: boolean
     }
+) & { cache_control?: CacheControl }
 
 export type AnthropicMessage = {
   role: 'user' | 'assistant'
   content: string | AnthropicContentBlock[]
 }
 
-export function toAnthropicTools(tools: ToolDefinition[]) {
-  return tools.map((t) => {
+export function toAnthropicTools(tools: ToolDefinition[], cache = false) {
+  return tools.map((t, i) => {
     const schema = { ...t.parameters } as Record<string, unknown>
     if (!schema.type) schema.type = 'object'
     return {
@@ -33,8 +38,48 @@ export function toAnthropicTools(tools: ToolDefinition[]) {
         type: 'object'
         properties?: Record<string, unknown>
         required?: string[]
-      }
+      },
+      // הסמן על הכלי האחרון ממטמן את **כל** בלוק ההגדרות שלפניו
+      ...(cache && i === tools.length - 1
+        ? { cache_control: { type: 'ephemeral' as const } }
+        : {})
     }
+  })
+}
+
+/** הפרומפט כמערך בלוקים — הצורה היחידה שמאפשרת סמן מטמון על ה-system */
+export function toAnthropicSystem(
+  system: string | undefined,
+  cache: boolean
+): string | Array<{ type: 'text'; text: string; cache_control?: CacheControl }> | undefined {
+  const text = system?.trim()
+  if (!text) return undefined
+  if (!cache) return text
+  return [{ type: 'text', text, cache_control: { type: 'ephemeral' } }]
+}
+
+/**
+ * מוסיף סמני מטמון להיסטוריה — נקודה מתגלגלת בסוף + נקודות ביניים,
+ * כדי שסבב עמוס בלוקים לא יחרוג מחלון המבט לאחור של Anthropic.
+ *
+ * @param reserved כמה נקודות שבירה כבר תפוסות (system + tools)
+ */
+export function withMessageCacheControl(
+  messages: AnthropicMessage[],
+  reserved: number
+): AnthropicMessage[] {
+  const counts = messages.map((m) => (Array.isArray(m.content) ? m.content.length : 1))
+  const marks = pickCacheBreakpoints(counts, reserved)
+  if (!marks.size) return messages
+
+  return messages.map((m, i) => {
+    if (!marks.has(i) || !Array.isArray(m.content) || !m.content.length) return m
+    const content = m.content.map((block, j) =>
+      j === m.content.length - 1
+        ? { ...block, cache_control: { type: 'ephemeral' as const } }
+        : block
+    )
+    return { ...m, content }
   })
 }
 

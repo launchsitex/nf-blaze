@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { IPC } from '../shared/ipc'
+import type { UpdateState } from '../shared/version'
 import type {
   AgentStreamEvent,
   AiProvider,
@@ -8,13 +9,17 @@ import type {
   FileNode,
   GithubRepoInfo,
   GithubUserInfo,
+  OAuthConnectResult,
+  OAuthProviderId,
   ProjectIntegrations,
   ProjectMeta,
   ProjectIndexInfo,
   SendChatResult,
   ShellRunRequest,
   ShellRunResult,
+  SupabaseAccountStatus,
   SupabaseConnectInput,
+  SupabaseProjectInfo,
   VercelDeployInput,
   VercelDeployResult,
   VercelProjectInfo,
@@ -29,7 +34,9 @@ import type {
   SnapshotSummary,
   SnapshotFileDiff,
   ChatMeta,
-  ChatsIndex
+  ChatsIndex,
+  FeedbackSubmitInput,
+  FeedbackSubmitResult
 } from '../shared/types'
 import type { ContextUsage } from '../shared/context'
 
@@ -81,6 +88,15 @@ export interface NfBlazeApi {
   pickFolder: () => Promise<string | null>
   importProject: (payload: {
     name: string
+    description?: string
+    folderPath: string
+    provider: AiProvider
+    model?: string
+  }) => Promise<ProjectMeta>
+  /** שכפול ריפו מ-GitHub לתיקייה ריקה, ואז ייבוא כפרויקט */
+  importProjectFromGithub: (payload: {
+    repoUrl: string
+    name?: string
     description?: string
     folderPath: string
     provider: AiProvider
@@ -202,6 +218,7 @@ export interface NfBlazeApi {
   getLicenseStatus: () => Promise<import('../shared/license').LicenseStatus>
   activateLicense: (key: string) => Promise<import('../shared/license').LicenseStatus>
   clearLicense: () => Promise<import('../shared/license').LicenseStatus>
+  revalidateLicense: () => Promise<import('../shared/license').LicenseStatus>
   runSecurityScan: (projectId: string) => Promise<{
     ok: boolean
     blocked: boolean
@@ -216,9 +233,25 @@ export interface NfBlazeApi {
     }>
     summaryHebrew: string
   }>
+  /** שליחת משוב / דיווח תקלה לפורטל הרישיונות (משויך שם לבעל הרישיון) */
+  submitFeedback: (input: FeedbackSubmitInput) => Promise<FeedbackSubmitResult>
   onShellEvent: (handler: (ev: { line: string; stream: 'stdout' | 'stderr' }) => void) => () => void
 
+  /** מצב עדכון הגרסה — כולל האם העדכון חוסם את המערכת */
+  updateStatus: () => Promise<UpdateState>
+  updateCheck: () => Promise<UpdateState>
+  updateRetry: () => Promise<UpdateState>
+  updateInstall: () => Promise<{ ok: boolean }>
+  /** דחיית עדכון חובה ב-12 שעות (מוגבל במכסה) */
+  updateSnooze: () => Promise<UpdateState>
+  onUpdateEvent: (handler: (state: UpdateState) => void) => () => void
+  getSeenVersion: () => Promise<string | null>
+  setSeenVersion: (version: string) => Promise<{ ok: boolean }>
+
   getIntegrations: (projectId: string) => Promise<ProjectIntegrations>
+  /** «התחבר עם…» — פותח את דף האישור של הספק ומחזיר את החשבון שחובר */
+  connectOAuth: (provider: OAuthProviderId) => Promise<OAuthConnectResult>
+  cancelOAuth: () => Promise<{ ok: boolean }>
   githubStatus: () => Promise<{ connected: boolean; user?: GithubUserInfo }>
   setGithubToken: (token: string) => Promise<{ ok: boolean; user: GithubUserInfo }>
   clearGithubToken: () => Promise<{ ok: boolean }>
@@ -238,6 +271,17 @@ export interface NfBlazeApi {
     isPrivate?: boolean
   }) => Promise<ProjectIntegrations>
   pushGithub: (projectId: string, message?: string) => Promise<{ ok: boolean; summary: string }>
+  publishGithub: (
+    projectId: string,
+    opts?: { message?: string; branchName?: string }
+  ) => Promise<{
+    ok: boolean
+    mode: 'branch' | 'repo'
+    repoFullName: string
+    branch?: string
+    url: string
+    summary: string
+  }>
   listGithubBranches: (projectId: string) => Promise<string[]>
   setGithubBranch: (projectId: string, branch: string) => Promise<ProjectIntegrations>
   disconnectGithub: (projectId: string) => Promise<ProjectIntegrations>
@@ -247,6 +291,13 @@ export interface NfBlazeApi {
     anonKey: string
   ) => Promise<{ ok: boolean; message: string }>
   disconnectSupabase: (projectId: string) => Promise<ProjectIntegrations>
+  supabaseAccountStatus: () => Promise<SupabaseAccountStatus>
+  disconnectSupabaseAccount: () => Promise<{ ok: boolean }>
+  listSupabaseProjects: () => Promise<SupabaseProjectInfo[]>
+  linkSupabaseProject: (payload: {
+    projectId: string
+    ref: string
+  }) => Promise<{ ok: boolean; message: string }>
 
   vercelStatus: () => Promise<{
     hasUserToken: boolean
@@ -310,6 +361,8 @@ const api: NfBlazeApi = {
   pickFolder: () => ipcRenderer.invoke(IPC.PROJECTS_PICK_FOLDER),
   createProject: (payload) => ipcRenderer.invoke(IPC.PROJECTS_CREATE, payload),
   importProject: (payload) => ipcRenderer.invoke(IPC.PROJECTS_IMPORT, payload),
+  importProjectFromGithub: (payload) =>
+    ipcRenderer.invoke(IPC.PROJECTS_IMPORT_GITHUB, payload),
   updateProject: (id, partial) => ipcRenderer.invoke(IPC.PROJECTS_UPDATE, id, partial),
   deleteProject: (id) => ipcRenderer.invoke(IPC.PROJECTS_DELETE, id),
   listTemplates: () => ipcRenderer.invoke(IPC.PROJECTS_LIST_TEMPLATES),
@@ -386,7 +439,9 @@ const api: NfBlazeApi = {
   getLicenseStatus: () => ipcRenderer.invoke(IPC.LICENSE_STATUS),
   activateLicense: (key) => ipcRenderer.invoke(IPC.LICENSE_ACTIVATE, key),
   clearLicense: () => ipcRenderer.invoke(IPC.LICENSE_CLEAR),
+  revalidateLicense: () => ipcRenderer.invoke(IPC.LICENSE_REVALIDATE),
   runSecurityScan: (projectId) => ipcRenderer.invoke(IPC.SECURITY_SCAN, projectId),
+  submitFeedback: (input) => ipcRenderer.invoke(IPC.FEEDBACK_SUBMIT, input),
   onShellEvent: (handler) => {
     const listener = (_e: unknown, data: { line: string; stream: 'stdout' | 'stderr' }) =>
       handler(data)
@@ -394,7 +449,22 @@ const api: NfBlazeApi = {
     return () => ipcRenderer.removeListener(IPC.SHELL_EVENT, listener)
   },
 
+  updateStatus: () => ipcRenderer.invoke(IPC.APP_UPDATE_STATUS),
+  updateCheck: () => ipcRenderer.invoke(IPC.APP_UPDATE_CHECK),
+  updateRetry: () => ipcRenderer.invoke(IPC.APP_UPDATE_RETRY),
+  updateInstall: () => ipcRenderer.invoke(IPC.APP_UPDATE_INSTALL),
+  updateSnooze: () => ipcRenderer.invoke(IPC.APP_UPDATE_SNOOZE),
+  onUpdateEvent: (handler) => {
+    const listener = (_e: unknown, state: UpdateState): void => handler(state)
+    ipcRenderer.on(IPC.APP_UPDATE_EVENT, listener)
+    return () => ipcRenderer.removeListener(IPC.APP_UPDATE_EVENT, listener)
+  },
+  getSeenVersion: () => ipcRenderer.invoke(IPC.APP_SEEN_VERSION_GET),
+  setSeenVersion: (version) => ipcRenderer.invoke(IPC.APP_SEEN_VERSION_SET, version),
+
   getIntegrations: (projectId) => ipcRenderer.invoke(IPC.INTEG_GET, projectId),
+  connectOAuth: (provider) => ipcRenderer.invoke(IPC.INTEG_OAUTH_CONNECT, provider),
+  cancelOAuth: () => ipcRenderer.invoke(IPC.INTEG_OAUTH_CANCEL),
   githubStatus: () => ipcRenderer.invoke(IPC.INTEG_GITHUB_STATUS),
   setGithubToken: (token) => ipcRenderer.invoke(IPC.INTEG_GITHUB_SET_TOKEN, token),
   clearGithubToken: () => ipcRenderer.invoke(IPC.INTEG_GITHUB_CLEAR_TOKEN),
@@ -407,12 +477,18 @@ const api: NfBlazeApi = {
     ipcRenderer.invoke(IPC.INTEG_GITHUB_SET_BRANCH, projectId, branch),
   pushGithub: (projectId, message) =>
     ipcRenderer.invoke(IPC.INTEG_GITHUB_PUSH, projectId, message),
+  publishGithub: (projectId, opts) =>
+    ipcRenderer.invoke(IPC.INTEG_GITHUB_PUBLISH, projectId, opts),
   disconnectGithub: (projectId) => ipcRenderer.invoke(IPC.INTEG_GITHUB_DISCONNECT, projectId),
   connectSupabase: (input) => ipcRenderer.invoke(IPC.INTEG_SUPABASE_CONNECT, input),
   testSupabase: (projectUrl, anonKey) =>
     ipcRenderer.invoke(IPC.INTEG_SUPABASE_TEST, projectUrl, anonKey),
   disconnectSupabase: (projectId) =>
     ipcRenderer.invoke(IPC.INTEG_SUPABASE_DISCONNECT, projectId),
+  supabaseAccountStatus: () => ipcRenderer.invoke(IPC.INTEG_SUPABASE_ACCOUNT_STATUS),
+  disconnectSupabaseAccount: () => ipcRenderer.invoke(IPC.INTEG_SUPABASE_ACCOUNT_DISCONNECT),
+  listSupabaseProjects: () => ipcRenderer.invoke(IPC.INTEG_SUPABASE_LIST_PROJECTS),
+  linkSupabaseProject: (payload) => ipcRenderer.invoke(IPC.INTEG_SUPABASE_LINK_PROJECT, payload),
 
   vercelStatus: () => ipcRenderer.invoke(IPC.INTEG_VERCEL_STATUS),
   setVercelToken: (token) => ipcRenderer.invoke(IPC.INTEG_VERCEL_SET_TOKEN, token),

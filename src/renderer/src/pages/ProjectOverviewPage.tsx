@@ -90,6 +90,21 @@ export default function ProjectOverviewPage({ project, onOpenChat, onProjectUpda
     }
   }
 
+  /** פרסום: ענף חדש אם מקושר, ריפו חדש אחרת */
+  async function publish() {
+    setSyncBusy(true)
+    setStatus('')
+    try {
+      const res = await window.nfblaze.publishGithub(project.id)
+      setInteg(await window.nfblaze.getIntegrations(project.id))
+      setStatus(`✓ ${res.summary} — ${res.url}`)
+    } catch (err) {
+      setStatus(`✗ ${err instanceof Error ? err.message : String(err)}`)
+    } finally {
+      setSyncBusy(false)
+    }
+  }
+
   async function changeBranch(branch: string) {
     if (!branch) return
     const next = await window.nfblaze.setGithubBranch(project.id, branch)
@@ -256,6 +271,15 @@ export default function ProjectOverviewPage({ project, onOpenChat, onProjectUpda
                   <UploadCloud size={15} />
                   {syncBusy ? 'מסנכרן…' : 'סנכרן ל-GitHub'}
                 </button>
+                <button
+                  className="btn"
+                  disabled={syncBusy}
+                  title="יוצר ענף חדש (nf-blaze-...) בלי לגעת בראשי"
+                  onClick={() => void publish()}
+                >
+                  <Github size={15} />
+                  פרסם לענף חדש
+                </button>
                 <button className="btn btn-ghost" onClick={() => void disconnectRepo()}>
                   נתק מהריפו
                 </button>
@@ -263,11 +287,20 @@ export default function ProjectOverviewPage({ project, onOpenChat, onProjectUpda
             </>
           ) : (
             <>
-              <p className="desc">הפרויקט לא מחובר לריפו — חבר כדי לגבות ולסנכרן את הקוד.</p>
-              <button className="btn btn-primary" onClick={() => setShowIntegrations(true)}>
-                <Github size={15} />
-                חבר ריפו GitHub
-              </button>
+              <p className="desc">
+                הפרויקט לא מחובר לריפו. «פרסם ל-GitHub» יוצר ריפו חדש בחשבונך ומעלה את הקוד
+                (דורש חשבון GitHub מחובר בהגדרות).
+              </p>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button className="btn btn-primary" disabled={syncBusy} onClick={() => void publish()}>
+                  <UploadCloud size={15} />
+                  {syncBusy ? 'מפרסם…' : 'פרסם ל-GitHub'}
+                </button>
+                <button className="btn btn-ghost" onClick={() => setShowIntegrations(true)}>
+                  <Github size={15} />
+                  חבר ריפו קיים
+                </button>
+              </div>
             </>
           )}
         </div>

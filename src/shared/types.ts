@@ -76,6 +76,14 @@ export interface AppSettings {
   vercelTeamId?: string
   /** Host team id for instant claim deploys (Path A) */
   vercelPlatformTeamId?: string
+  /** הגרסה האחרונה שעליה המשתמש כבר ראה את «מה חדש» */
+  lastSeenVersion?: string
+  /**
+   * דחיית עדכון — «אני באמצע עבודה». נשמר בקובץ ההגדרות ולא באחסון
+   * המוצפן: זו נוחות למשתמש ולא גבול אבטחה. ההגנה מפני דחייה אינסופית
+   * היא המכסה (`MAX_UPDATE_SNOOZES`) והקשירה לגרסה, לא הצפנה.
+   */
+  updateSnooze?: import('./version').UpdateSnooze
 }
 
 /** נקודת שחזור להצגה בהיסטוריית הגרסאות — בלי תוכן קבצים */
@@ -201,6 +209,18 @@ export interface ChatMessage {
   changeStats?: Record<string, { added: number; removed: number }>
   /** אישור שינויים: true=אושרו, false=בוטלו; undefined=ממתין להחלטה */
   changesApproved?: boolean
+  /** אושר אוטומטית בזכות אמון מדורג (ולא על ידי המשתמש) */
+  autoApproved?: boolean
+  /** «בסיס ירוק» — מה שעבד לפני הסבב ונשבר בו */
+  regressions?: Regression[]
+}
+
+/** ממצא של «בסיס ירוק»: משהו שהיה תקין ונשבר בסבב האחרון */
+export interface Regression {
+  kind: 'route' | 'console'
+  /** קיים רק ל-kind=route */
+  route?: string
+  detail: string
 }
 
 /** Diff של קובץ בודד בסבב — לפני (מה-snapshot) מול אחרי (הקובץ הנוכחי) */
@@ -404,6 +424,13 @@ export type AgentStreamEvent =
       summary?: string
       works?: string[]
       broken?: string[]
+    }
+  /** «בסיס ירוק» — השוואה למצב האחרון הידוע כתקין */
+  | {
+      type: 'health'
+      phase: 'ok' | 'regressed' | 'skipped'
+      message: string
+      regressions?: Regression[]
     }
 
 export const QUICK_PROMPTS = [
@@ -711,6 +738,8 @@ export interface SupabaseIntegrationMeta {
   projectUrl?: string
   hasAnonKey: boolean
   hasServiceKey: boolean
+  /** יש access token לגישת הסוכן למסד (Management API) — הסוכן יכול להריץ SQL */
+  hasAgentDbAccess?: boolean
   lastTestOk?: boolean
   lastTestAt?: string
 }
@@ -736,6 +765,128 @@ export interface ProjectIntegrations {
   vercel: VercelIntegrationMeta
 }
 
+/* ── משוב ודיווח באגים ────────────────────────────────────────────────
+   נשלח מהאפליקציה לפורטל הרישיונות.
+
+   בעל רישיון: השיוך נעשה **בשרת** מתוך המפתח החתום — הלקוח לא מצהיר על
+   שמו, ולכן אי אפשר להתחזות לבעל רישיון אחר.
+
+   בלי רישיון: אפשר לשלוח (בעיקר כדי לבקש או לחדש רישיון — מי שתקוע בשער
+   הרישיון לא יכול לפנות בשום דרך אחרת מתוך המערכת). אז השם והאימייל
+   מוצהרים על ידי השולח, והפנייה מסומנת בפורטל כ«לא מאומתת». */
+
+export type FeedbackKind = 'bug' | 'feature' | 'feedback' | 'question' | 'license'
+
+export interface FeedbackKindInfo {
+  id: FeedbackKind
+  label: string
+  /** מה בדיוק מתאים לקטגוריה הזו — מוצג מתחת לבחירה */
+  hint: string
+}
+
+export const FEEDBACK_KINDS: FeedbackKindInfo[] = [
+  {
+    id: 'bug',
+    label: 'דיווח על תקלה',
+    hint: 'משהו לא עובד כמו שצריך. תארו מה עשיתם, מה ציפיתם שיקרה, ומה קרה בפועל.'
+  },
+  {
+    id: 'feature',
+    label: 'הצעת שיפור',
+    hint: 'יכולת שחסרה לכם או משהו שהיה יכול לעבוד נוח יותר.'
+  },
+  {
+    id: 'feedback',
+    label: 'משוב כללי',
+    hint: 'מה עובד טוב, מה פחות, ואיך החוויה מבחינתכם.'
+  },
+  {
+    id: 'question',
+    label: 'שאלה',
+    hint: 'לא מצאתם תשובה במרכז העזרה? שאלו כאן ונחזור אליכם.'
+  },
+  {
+    id: 'license',
+    label: 'בקשת/חידוש רישיון',
+    hint: 'רוצים רישיון חדש, להאריך רישיון שפג, או להוסיף מחשב? השאירו שם ואימייל ונחזור אליכם.'
+  }
+]
+
+/** אורכים מרביים — נאכפים גם באפליקציה וגם בשרת */
+export const FEEDBACK_TITLE_MAX = 120
+export const FEEDBACK_MESSAGE_MAX = 4000
+export const FEEDBACK_NAME_MAX = 120
+export const FEEDBACK_EMAIL_MAX = 200
+
+/** אותה בדיקה שרצה בשרת — כדי שהמשתמש יקבל שגיאה לפני שליחה מיותרת */
+export const FEEDBACK_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
+
+export interface FeedbackSubmitInput {
+  kind: FeedbackKind
+  title: string
+  message: string
+  /**
+   * שם השולח — נדרש **רק** כשאין רישיון פעיל. עם רישיון הוא מתעלם:
+   * השם נקבע בשרת מתוך המפתח החתום ולא ממה שנשלח מכאן.
+   */
+  name?: string
+  /** אימייל לחזרה. חובה כשאין רישיון — אחרת אין לאן להשיב */
+  email?: string
+}
+
+export interface FeedbackSubmitResult {
+  ok: boolean
+  messageHe: string
+}
+
+export function isFeedbackKind(value: unknown): value is FeedbackKind {
+  return FEEDBACK_KINDS.some((k) => k.id === value)
+}
+
+/**
+ * ולידציה משותפת לטופס המשוב. מוחזרת הודעה בעברית, או null כשהכול תקין.
+ * ‏`licensed=false` מחייב שם ואימייל — בלעדיהם אין דרך לחזור לפונה.
+ */
+export function validateFeedbackInput(
+  input: FeedbackSubmitInput,
+  licensed: boolean
+): string | null {
+  if (!isFeedbackKind(input?.kind)) return 'יש לבחור סוג פנייה.'
+  if (!input.title?.trim()) return 'יש לכתוב כותרת קצרה לפנייה.'
+  if (!input.message?.trim()) return 'יש לתאר את הפנייה.'
+  const email = (input.email || '').trim()
+  if (!licensed) {
+    if (!input.name?.trim()) return 'יש להזין שם מלא.'
+    if (!email) return 'יש להזין אימייל — בלעדיו לא נוכל לחזור אליכם.'
+  }
+  if (email && !FEEDBACK_EMAIL_RE.test(email)) return 'כתובת האימייל אינה תקינה.'
+  return null
+}
+
+/** הפלטפורמות שאפשר לחבר בלחיצה אחת («Authorize NF-Blaze») */
+export type OAuthProviderId = 'github' | 'supabase' | 'vercel'
+
+export interface OAuthConnectResult {
+  provider: OAuthProviderId
+  /** שם החשבון/הארגון שחובר, אם הספק מספק אותו */
+  account?: string
+  message: string
+}
+
+/** מצב חשבון ה-Supabase המחובר ברמת האפליקציה (לא לפי פרויקט) */
+export interface SupabaseAccountStatus {
+  connected: boolean
+  orgName?: string
+}
+
+export interface SupabaseProjectInfo {
+  ref: string
+  name: string
+  organizationId?: string
+  region?: string
+  status?: string
+}
+
 export interface GithubUserInfo {
   login: string
   name: string | null
@@ -756,6 +907,8 @@ export interface SupabaseConnectInput {
   projectUrl: string
   anonKey: string
   serviceRoleKey?: string
+  /** Personal Access Token של Supabase — נותן לסוכן להריץ SQL ישירות (Management API) */
+  accessToken?: string
   writeEnvFiles?: boolean
   scaffoldClient?: boolean
 }
@@ -830,7 +983,7 @@ export interface VercelDeployResult {
 
 export const DEFAULT_INTEGRATIONS: ProjectIntegrations = {
   github: { connected: false },
-  supabase: { connected: false, hasAnonKey: false, hasServiceKey: false },
+  supabase: { connected: false, hasAnonKey: false, hasServiceKey: false, hasAgentDbAccess: false },
   vercel: { connected: false }
 }
 

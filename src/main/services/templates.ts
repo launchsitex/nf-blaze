@@ -128,6 +128,76 @@ export function syncNfSourcePlugin(projectFolder: string): boolean {
   }
 }
 
+/**
+ * מזריק את nfSourcePlugin לתוך vite.config של הפרויקט (לוגיקה טהורה, לבדיקות).
+ * מחזיר קונפיג מעודכן, או null אם הוא כבר קיים / אי אפשר לתקן בבטחה.
+ */
+export function injectNfSourceIntoConfig(src: string): string | null {
+  // כבר מוזרק
+  if (/nf-blaze-source|nfSourcePlugin/.test(src)) return null
+  // חייב מערך plugins כדי להזריק בבטחה
+  if (!/plugins\s*:\s*\[/.test(src)) return null
+
+  const importLine =
+    "import { nfSourcePlugin } from './plugins/nf-blaze-source/src/index.js' // NF-Blaze: בורר אלמנטים בתצוגה"
+  let out = src.replace(/plugins\s*:\s*\[/, 'plugins: [nfSourcePlugin(), ')
+
+  // מוסיפים את ה-import אחרי ה-import האחרון (או בתחילת הקובץ)
+  const imports = [...out.matchAll(/^\s*import\s.*$/gm)]
+  const last = imports[imports.length - 1]
+  if (last && typeof last.index === 'number') {
+    const at = last.index + last[0].length
+    out = out.slice(0, at) + '\n' + importLine + out.slice(at)
+  } else {
+    out = importLine + '\n' + out
+  }
+  return out
+}
+
+/**
+ * מוודא שבפרויקט Vite (גם מיובא / של Dyad) בורר האלמנטים יעבוד: מעתיק את קבצי
+ * ה-plugin ומזריק אותו ל-vite.config. בלי זה, בפרויקטים שלא נוצרו ב-NF-Blaze
+ * סקריפט הבורר לא מוזרק והבחירה בתצוגה «לא עושה כלום».
+ */
+export function ensureNfSourceInViteConfig(projectFolder: string): boolean {
+  try {
+    const configName = [
+      'vite.config.ts',
+      'vite.config.js',
+      'vite.config.mts',
+      'vite.config.mjs',
+      'vite.config.cjs'
+    ].find((n) => existsSync(join(projectFolder, n)))
+    if (!configName) return false // אין vite.config — לא נוגעים (לא בטוח ליצור)
+
+    const configPath = join(projectFolder, configName)
+    const src = readFileSync(configPath, 'utf-8')
+
+    // מעתיקים את קבצי ה-plugin (גם אם ה-config כבר מתוקן — כדי לעדכן לגרסה חדשה)
+    const sourceDir = join(resolveTemplatesRoot(), 'web-app', 'plugins', 'nf-blaze-source', 'src')
+    const targetDir = join(projectFolder, 'plugins', 'nf-blaze-source', 'src')
+    if (existsSync(sourceDir)) {
+      mkdirSync(targetDir, { recursive: true })
+      for (const file of readdirSync(sourceDir)) {
+        const from = join(sourceDir, file)
+        if (!statSync(from).isFile()) continue
+        const to = join(targetDir, file)
+        const next = readFileSync(from, 'utf-8')
+        if (!existsSync(to) || readFileSync(to, 'utf-8') !== next) {
+          writeFileSync(to, next, 'utf-8')
+        }
+      }
+    }
+
+    const patched = injectNfSourceIntoConfig(src)
+    if (patched === null) return false // כבר קיים או לא ניתן להזרקה
+    writeFileSync(configPath, patched, 'utf-8')
+    return true
+  } catch {
+    return false
+  }
+}
+
 export function listTemplates(): TemplateInfo[] {
   const root = resolveTemplatesRoot()
   return TEMPLATES.filter((t) => existsSync(join(root, t.id, 'package.json')))

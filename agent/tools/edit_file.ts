@@ -59,7 +59,7 @@ export const editFileTool: ToolHandler = async (args, ctx) => {
     const after = applyUniqueEdit(before, args.old_string, args.new_string)
 
     // Pre-write validation (packages, local imports, component props)
-    assertWritableContent(ctx.rootDir, args.path, after)
+    assertWritableContent(ctx.rootDir, args.path, after, ctx.session)
 
     mkdirSync(dirname(full), { recursive: true })
     writeFileSync(full, after, 'utf8')

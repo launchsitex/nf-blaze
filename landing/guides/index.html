@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>מדריכים · חיבור מודל AI ל-NF-Blaze</title>
+    <meta
+      name="description"
+      content="מדריכים מלאים בעברית: איך משיגים מפתח API מ-OpenAI, Google Gemini או Anthropic Claude, ואיך מחברים אותו ל-NF-Blaze בבטחה."
+    />
+    <meta name="theme-color" content="#07090d" />
+    <link rel="canonical" href="https://nf-blaze.dev/guides/" />
+    <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../styles.css" />
+    <link rel="stylesheet" href="../a11y.css" />
+  </head>
+
+  <body>
+    <script src="../sprite.js"></script>
+
+    <a class="skip-link" href="#main-content">דלג לתוכן הראשי</a>
+
+    <nav class="nav" id="nav">
+      <div class="wrap">
+        <a class="brand" href="../" aria-label="NF-Blaze — לעמוד הבית">
+          <svg class="brand-mark" aria-hidden="true"><use href="#i-brand" /></svg>
+          NF-Blaze
+        </a>
+        <div class="nav-links">
+          <a href="../#capabilities">יכולות</a>
+          <a href="../#integrations">חיבורים</a>
+          <a href="./">מדריכים</a>
+          <a href="../#faq">שאלות</a>
+          <a href="../#download">הורדה</a>
+        </div>
+        <a class="btn btn-primary nav-cta" href="../#license">
+          <svg class="ic" aria-hidden="true"><use href="#i-key" /></svg>
+          בקשת רישיון
+        </a>
+        <button class="nav-toggle" id="navToggle" aria-label="תפריט" aria-expanded="false">
+          <svg class="ic" aria-hidden="true"><use href="#i-menu" /></svg>
+        </button>
+      </div>
+    </nav>
+
+    <div class="mobile-menu" id="mobileMenu">
+      <a href="../#capabilities">יכולות</a>
+      <a href="../#integrations">חיבורים</a>
+      <a href="../#security">אבטחה ופרטיות</a>
+      <a href="../#faq">שאלות נפוצות</a>
+      <div class="menu-group">מדריכים · חיבור מודל למערכת</div>
+      <a class="sub" href="chatgpt.html">
+        <svg class="ic" aria-hidden="true"><use href="#i-openai" /></svg>
+        ChatGPT · OpenAI
+      </a>
+      <a class="sub" href="gemini.html">
+        <svg class="ic ic-solid" aria-hidden="true"><use href="#i-gemini" /></svg>
+        Google Gemini
+      </a>
+      <a class="sub" href="claude.html">
+        <svg class="ic" aria-hidden="true"><use href="#i-claude" /></svg>
+        Anthropic Claude
+      </a>
+      <a class="btn btn-primary" href="../#license">
+        <svg class="ic" aria-hidden="true"><use href="#i-key" /></svg>
+        בקשת רישיון
+      </a>
+    </div>
+
+    <main id="main-content">
+      <section class="guide-hero">
+        <div class="aurora" aria-hidden="true">
+          <div class="blob blob-1"></div>
+          <div class="blob blob-3"></div>
+        </div>
+
+        <div class="wrap">
+          <div class="crumb">
+            <a href="../">ראשי</a>
+            <span class="sep">←</span>
+            <span>מדריכים</span>
+          </div>
+
+          <h1>איך מחברים מודל AI למערכת</h1>
+          <p class="lead">
+            כדי ש-NF-Blaze תבנה בשבילך, היא צריכה «מנוע חשיבה» — מודל שפה. המודל לא מגיע בתוך
+            התוכנה: אתה פותח חשבון אצל הספק שאתה בוחר, מקבל <strong>מפתח API</strong>, ומדביק
+            אותו פעם אחת בהגדרות. מכאן והלאה אתה משלם לספק ישירות לפי מה שצרכת, בלי מתווך
+            ובלי מנוי חודשי דרכנו.
+          </p>
+          <p class="lead">
+            שלושת המדריכים למטה כתובים למי שלא עשה את זה מעולם — צעד אחר צעד, כולל איך לשים
+            תקרת הוצאה שלא תפתיע אותך, ומה לעשות אם המפתח דלף.
+          </p>
+        </div>
+      </section>
+
+      <section style="padding-top: 0">
+        <div class="wrap">
+          <h2 class="section-head" style="margin-bottom:22px">בחר את הספק שלך</h2>
+          <div class="guide-pick">
+            <a href="chatgpt.html">
+              <svg class="ic" aria-hidden="true"><use href="#i-openai" /></svg>
+              <h3>ChatGPT · OpenAI</h3>
+              <p>
+                המשפחה המוכרת ביותר. שים לב: מנוי ChatGPT Plus <strong>אינו</strong> כולל גישת
+                API — זו מערכת חיוב נפרדת לגמרי.
+              </p>
+              <span class="tagline">למדריך המלא ←</span>
+            </a>
+
+            <a href="gemini.html">
+              <svg class="ic ic-solid" aria-hidden="true"><use href="#i-gemini" /></svg>
+              <h3>Google Gemini</h3>
+              <p>
+                הדרך המהירה להתחיל: אפשר להוציא מפתח בדקה מחשבון Google רגיל, ויש שכבה חינמית
+                לניסוי לפני שמכניסים כרטיס.
+              </p>
+              <span class="tagline">למדריך המלא ←</span>
+            </a>
+
+            <a href="claude.html">
+              <svg class="ic" aria-hidden="true"><use href="#i-claude" /></svg>
+              <h3>Anthropic Claude</h3>
+              <p>
+                חזק במיוחד בכתיבת קוד ובמשימות ארוכות. כמו ב-OpenAI — מנוי Claude Pro אינו
+                מקנה גישת API.
+              </p>
+              <span class="tagline">למדריך המלא ←</span>
+            </a>
+          </div>
+
+          <div class="callout warn" style="margin-top: 34px">
+            <svg class="ic" aria-hidden="true"><use href="#i-alert" /></svg>
+            <div>
+              <h3 class="callout-h">הכלל היחיד שחייבים לזכור</h3>
+              <p>
+                מפתח API הוא <strong>אמצעי תשלום</strong>, לא סיסמה. מי שמשיג אותו יכול לצרוך על
+                חשבונך עד שתגלה. אל תשלח אותו בוואטסאפ, במייל, בצילום מסך או בצ׳אט — אף פעם, גם
+                לא לתמיכה. בכל אחד מהמדריכים יש פרק שלם על זה.
+              </p>
+            </div>
+          </div>
+
+          <div class="callout ok">
+            <svg class="ic" aria-hidden="true"><use href="#i-local" /></svg>
+            <div>
+              <h3 class="callout-h">איפה המפתח נשמר אצלנו</h3>
+              <p>
+                המפתח נשמר <strong>רק על המחשב שלך</strong>, דרך מנגנון ההצפנה של מערכת ההפעלה —
+                לא בקובץ טקסט ולא בשרת שלנו. הוא משמש אך ורק לפנייה ישירה מהמחשב שלך אל הספק.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="wrap">
+        <div class="foot-grid">
+          <div>
+            <a class="brand" href="../">
+              <svg class="brand-mark" aria-hidden="true"><use href="#i-brand" /></svg>
+              NF-Blaze
+            </a>
+            <p>סביבת פיתוח עם AI בעברית, שרצה על המחשב שלך.</p>
+          </div>
+          <div class="foot-col">
+            <h3>מדריכים</h3>
+            <a href="chatgpt.html">ChatGPT · OpenAI</a>
+            <a href="gemini.html">Google Gemini</a>
+            <a href="claude.html">Anthropic Claude</a>
+          </div>
+          <div class="foot-col">
+            <h3>העמוד</h3>
+            <a href="../#capabilities">יכולות</a>
+            <a href="../#integrations">חיבורים</a>
+            <a href="../#security">אבטחה ופרטיות</a>
+          </div>
+          <div class="foot-col">
+            <h3>מידע משפטי</h3>
+            <a href="/privacy.html">מדיניות פרטיות</a>
+            <a href="/terms.html">תקנון ותנאי שימוש</a>
+            <a href="/accessibility.html">הצהרת נגישות</a>
+          </div>
+
+          <div class="foot-col">
+            <h3>יצירת קשר</h3>
+            <a href="mailto:Info@nf-blaze.dev">Info@nf-blaze.dev</a>
+            <a href="../#license">בקשת רישיון</a>
+          </div>
+        </div>
+        <div class="foot-bottom">
+          <span>© <span id="year">2026</span> NF-Blaze · כל הזכויות שמורות</span>
+          <span>nf-blaze.dev</span>
+        </div>
+      </div>
+    </footer>
+
+    <script src="../config.js"></script>
+    <script src="../app.js"></script>
+    <script src="../a11y.js"></script>
+  </body>
+</html>

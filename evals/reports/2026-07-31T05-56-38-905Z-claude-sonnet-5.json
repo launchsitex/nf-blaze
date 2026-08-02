@@ -1,0 +1,43 @@
+{
+  "model": "claude-sonnet-5",
+  "reports": [
+    {
+      "id": "landing-lawyer",
+      "status": "fail",
+      "durationMs": 48,
+      "iterations": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "stopReason": "error",
+      "checks": [
+        {
+          "name": "אין טקסט ממלא",
+          "status": "pass"
+        },
+        {
+          "name": "תוכן בעברית",
+          "status": "pass",
+          "detail": "index.html"
+        },
+        {
+          "name": "מכבד את מערכת העיצוב",
+          "status": "pass"
+        },
+        {
+          "name": "אין סודות בקוד",
+          "status": "pass"
+        },
+        {
+          "name": "index.html עם lang=he ו-dir=rtl",
+          "status": "pass"
+        },
+        {
+          "name": "יש טופס",
+          "status": "fail",
+          "detail": "לא נמצא: /<form[\\s>]/i"
+        }
+      ]
+    }
+  ]
+}

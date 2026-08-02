@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>איך משיגים מפתח API של Google Gemini · מדריך NF-Blaze</title>
+    <meta
+      name="description"
+      content="מדריך מלא בעברית להוצאת מפתח Gemini מ-Google AI Studio: שכבה חינמית בלי כרטיס אשראי, פורמט המפתח החדש, תקרת הוצאה, וחיבור ל-NF-Blaze בבטחה."
+    />
+    <meta name="theme-color" content="#07090d" />
+    <link rel="canonical" href="https://nf-blaze.dev/guides/gemini.html" />
+    <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../styles.css" />
+    <link rel="stylesheet" href="../a11y.css" />
+  </head>
+
+  <body>
+    <script src="../sprite.js"></script>
+
+    <a class="skip-link" href="#main-content">דלג לתוכן הראשי</a>
+
+    <nav class="nav" id="nav">
+      <div class="wrap">
+        <a class="brand" href="../" aria-label="NF-Blaze — לעמוד הבית">
+          <svg class="brand-mark" aria-hidden="true"><use href="#i-brand" /></svg>
+          NF-Blaze
+        </a>
+        <div class="nav-links">
+          <a href="../#capabilities">יכולות</a>
+          <a href="../#integrations">חיבורים</a>
+          <a href="./">מדריכים</a>
+          <a href="../#faq">שאלות</a>
+          <a href="../#download">הורדה</a>
+        </div>
+        <a class="btn btn-primary nav-cta" href="../#license">
+          <svg class="ic" aria-hidden="true"><use href="#i-key" /></svg>
+          בקשת רישיון
+        </a>
+        <button class="nav-toggle" id="navToggle" aria-label="תפריט" aria-expanded="false">
+          <svg class="ic" aria-hidden="true"><use href="#i-menu" /></svg>
+        </button>
+      </div>
+    </nav>
+
+    <div class="mobile-menu" id="mobileMenu">
+      <a href="../#capabilities">יכולות</a>
+      <a href="../#integrations">חיבורים</a>
+      <a href="../#security">אבטחה ופרטיות</a>
+      <div class="menu-group">מדריכים</div>
+      <a class="sub" href="chatgpt.html">
+        <svg class="ic" aria-hidden="true"><use href="#i-openai" /></svg>
+        ChatGPT · OpenAI
+      </a>
+      <a class="sub" href="gemini.html">
+        <svg class="ic ic-solid" aria-hidden="true"><use href="#i-gemini" /></svg>
+        Google Gemini
+      </a>
+      <a class="sub" href="claude.html">
+        <svg class="ic" aria-hidden="true"><use href="#i-claude" /></svg>
+        Anthropic Claude
+      </a>
+      <a class="btn btn-primary" href="../#license">
+        <svg class="ic" aria-hidden="true"><use href="#i-key" /></svg>
+        בקשת רישיון
+      </a>
+    </div>
+
+    <main id="main-content">
+      <section class="guide-hero">
+        <div class="aurora" aria-hidden="true"><div class="blob blob-2"></div></div>
+
+        <div class="wrap">
+          <div class="crumb">
+            <a href="../">ראשי</a>
+            <span class="sep">←</span>
+            <a href="./">מדריכים</a>
+            <span class="sep">←</span>
+            <span>Google Gemini</span>
+          </div>
+
+          <div class="guide-title">
+            <span class="brand-badge">
+              <svg class="ic ic-solid" aria-hidden="true"><use href="#i-gemini" /></svg>
+            </span>
+            <h1>חיבור Google Gemini ל-NF-Blaze</h1>
+          </div>
+
+          <p class="lead">
+            זו הדרך המהירה ביותר להתחיל: יש שכבה חינמית שלא דורשת כרטיס אשראי בכלל, והמפתח
+            נוצר בשתי לחיצות מחשבון Google רגיל.
+          </p>
+
+          <div class="meta-row">
+            <div class="meta">
+              <div class="k">כמה זמן</div>
+              <div class="v">‏2–3 דקות</div>
+            </div>
+            <div class="meta">
+              <div class="k">צריך כרטיס אשראי?</div>
+              <div class="v">לא — יש שכבה חינמית</div>
+            </div>
+            <div class="meta">
+              <div class="k">איך המפתח נראה</div>
+              <div class="v"><span class="mono">AQ.…</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section style="padding-top: 0">
+        <div class="wrap">
+          <div class="guide-body">
+            <div class="callout warn">
+              <svg class="ic" aria-hidden="true"><use href="#i-alert" /></svg>
+              <div>
+                <h2 class="callout-h">שים לב לפני שמתחילים</h2>
+                <p>
+                  <strong>מנוי Google AI Pro / Ultra אינו כולל גישת API.</strong> גוגל אומרת את
+                  זה במפורש: ההטבות של המנוי חלות רק בתוך הממשק של AI Studio, ושימוש ישיר
+                  ב-API — כלומר מה שהמערכת שלנו עושה — מחויב ומנוהל בנפרד.
+                </p>
+                <p>
+                  החדשות הטובות: <strong>השכבה החינמית של ה-API אמיתית ולא דורשת כרטיס</strong>.
+                  אפשר להתחיל לעבוד ולהחליט על תשלום רק כשתגיע למגבלות.
+                </p>
+              </div>
+            </div>
+
+            <h2>השגת המפתח — שלב אחר שלב</h2>
+
+            <div class="gstep">
+              <div class="n">1</div>
+              <h3>נכנסים ל-Google AI Studio</h3>
+              <p>
+                גלוש אל
+                <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener"
+                  >aistudio.google.com/apikey</a
+                >
+                והתחבר עם חשבון Google רגיל. זו כתובת אחרת
+                מ-<span class="mono">gemini.google.com</span> — שם נמצא הצ׳אט, כאן נמצאים
+                המפתחות.
+              </p>
+            </div>
+
+            <div class="gstep">
+              <div class="n">2</div>
+              <h3>יוצרים מפתח</h3>
+              <p>
+                לחץ <span class="ui">Create API key</span>. אם זו הפעם הראשונה, גוגל תיצור בשבילך
+                אוטומטית פרויקט ברקע — לא צריך להבין בזה כלום כדי להמשיך.
+              </p>
+              <p>
+                יש לך כבר חשבון Google Cloud? תראה גם כפתור
+                <span class="ui">Import projects</span> שמאפשר לבחור פרויקט קיים.
+              </p>
+            </div>
+
+            <div class="gstep">
+              <div class="n">3</div>
+              <h3>מעתיקים — ובודקים שהוא נראה נכון</h3>
+              <div class="callout warn">
+                <svg class="ic" aria-hidden="true"><use href="#i-key" /></svg>
+                <div>
+                  <h3 class="callout-h">שינוי חשוב שרוב המדריכים ברשת עוד לא מכירים</h3>
+                  <p>
+                    מפתחות חדשים שנוצרים היום ב-AI Studio מתחילים
+                    ב-<span class="mono">AQ.</span> — ולא ב-<span class="mono">AIza</span> כמו
+                    בעבר. אם ראית מדריך או סרטון שמראה
+                    <span class="mono">AIza…</span>, הוא <strong>מיושן</strong>.
+                  </p>
+                  <p>
+                    יתרה מזו: גוגל מוציאה משימוש את המפתחות מהדור הישן, ו<strong>מפתחות
+                    <span class="mono">AIza</span> יפסיקו להתקבל אחרי ספטמבר 2026</strong>. אם יש
+                    לך מפתח ישן — צור חדש עכשיו.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div class="gstep">
+              <div class="n">4</div>
+              <h3>מדביקים ב-NF-Blaze</h3>
+              <p>
+                פתח את NF-Blaze ← <span class="ui">הגדרות</span> ←
+                <span class="ui">מודלים ומפתחות</span> ← בחר
+                <strong>Google (Gemini)</strong> ← הדבק ← <span class="ui">שמור</span>.
+              </p>
+              <p>זהו. אפשר להתחיל לבנות — בלי להזין פרטי תשלום.</p>
+            </div>
+
+            <div class="gstep">
+              <div class="n">5</div>
+              <h3>רוצה יותר? מפעילים חיוב — ומיד קובעים תקרה</h3>
+              <p>
+                השכבה החינמית מוגבלת בקצב הבקשות ובכמות ליום. כשתרגיש שאתה נתקל במגבלות, לחץ
+                <span class="ui">Set up billing</span> בעמוד המפתחות, חבר חשבון חיוב של Google
+                Cloud, וטען מראש (מינימום כ-10$).
+              </p>
+              <div class="callout danger">
+                <svg class="ic" aria-hidden="true"><use href="#i-wallet" /></svg>
+                <div>
+                  <h3 class="callout-h">ברגע שהפעלת חיוב — קבע תקרה חודשית</h3>
+                  <p>
+                    בעמוד <span class="ui">Spend</span> ב-AI Studio קבע
+                    <strong>Monthly spend cap</strong> לפרויקט. גוגל ממליצה בנוסף להגדיר התראות
+                    חיוב ב-Google Cloud Console. אל תדלג — בלי תקרה, מפתח שדלף יכול לצרוך בלי
+                    גבול.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div class="callout info">
+              <svg class="ic" aria-hidden="true"><use href="#i-graph" /></svg>
+              <div>
+                <h3 class="callout-h">מושג אחד שכדאי להכיר: «פרויקט»</h3>
+                <p>
+                  כל מפתח Gemini משויך לפרויקט ב-Google Cloud. הפרויקט הוא זה שמחזיק את החיוב
+                  ואת המכסות. אם יש לך כמה פרויקטים — ודא שאתה מפעיל חיוב על
+                  <strong>הפרויקט הנכון</strong>, אחרת תשלם על אחד והמפתח יעבוד תחת אחר.
+                </p>
+              </div>
+            </div>
+
+            <h2>לשמור על המפתח — למה זה קריטי</h2>
+
+            <p>
+              מפתח API הוא לא סיסמה. סיסמה גנובה נותנת גישה לחשבון; <strong>מפתח גנוב הוא
+              אמצעי תשלום</strong> — מי שמחזיק בו צורך על חשבונך, בלי אימות דו-שלבי ובלי
+              שתדע.
+            </p>
+
+            <div class="callout danger">
+              <svg class="ic" aria-hidden="true"><use href="#i-clock" /></svg>
+              <div>
+                <h3 class="callout-h">המקרה שכדאי שתכיר</h3>
+                <p>
+                  צוות פיתוח קטן שמפתח Google שלו נגנב קיבל חשבון של
+                  <strong>כ-82,000 דולר תוך 48 שעות</strong> — לעומת הוצאה חודשית רגילה של
+                  כ-180 דולר. תוקפים הריצו איתו בקשות למודל עד שהתגלה.
+                </p>
+                <p>
+                  בוטים סורקים ריפוזיטוריז ציבוריים ומוצאים מפתחות חשופים
+                  <strong>תוך דקות</strong>. מספר מפתחות ה-AI שנחשפים בקוד ציבורי עלה ב-81%
+                  בשנה האחרונה.
+                </p>
+              </div>
+            </div>
+
+            <div class="callout warn">
+              <svg class="ic" aria-hidden="true"><use href="#i-shield" /></svg>
+              <div>
+                <h3 class="callout-h">ב-Gemini האחריות עליך יותר מאשר אצל האחרים</h3>
+                <p>
+                  ‏OpenAI ו-Anthropic הן שותפות מלאות בסריקת הסודות של GitHub — מפתח שנדחף
+                  לריפו ציבורי מושבת אצלן אוטומטית. עבור מפתחות API של גוגל
+                  <strong>ההגנה חלשה יותר</strong>, ואין הבטחה שהמפתח יבוטל בשבילך.
+                </p>
+                <p>
+                  בנוסף, מחקר עצמאי מצא שמפתחות Google שנמחקו המשיכו לעבוד
+                  <strong>עד כ-23 דקות</strong> אחרי המחיקה, בגלל האופן שבו הביטול מתפשט
+                  בשרתים. המסקנה המעשית: אל תסתמך על מחיקה בלבד —
+                  <strong>קבע תקרת הוצאה מראש</strong>.
+                </p>
+              </div>
+            </div>
+
+            <div class="rules">
+              <div class="rule no">
+                <span class="mark">✕</span>
+                <div>
+                  <strong>לא לשלוח באף ערוץ</strong>
+                  <span>לא בוואטסאפ, לא במייל, לא בצילום מסך, ולא בצ׳אט תמיכה.</span>
+                </div>
+              </div>
+              <div class="rule no">
+                <span class="mark">✕</span>
+                <div>
+                  <strong>לא להעלות לגיט</strong>
+                  <span>
+                    לא בקוד ולא ב-<span class="mono">.env</span> שנדחף לריפו. ‏NF-Blaze חוסמת
+                    מהסוכן גישה לקבצי סוד.
+                  </span>
+                </div>
+              </div>
+              <div class="rule no">
+                <span class="mark">✕</span>
+                <div>
+                  <strong>לא בקוד שרץ בדפדפן</strong>
+                  <span>כל מה שרץ אצל המשתמש גלוי לו.</span>
+                </div>
+              </div>
+              <div class="rule yes">
+                <span class="mark">✓</span>
+                <div>
+                  <strong>תקרה חודשית מיד עם הפעלת חיוב</strong>
+                  <span>ההגנה היחידה שעובדת גם כשהמפתח כבר בידיים לא נכונות.</span>
+                </div>
+              </div>
+              <div class="rule yes">
+                <span class="mark">✓</span>
+                <div>
+                  <strong>מפתח נפרד לכל שימוש</strong>
+                  <span>אם אחד נחשף — מוחקים אותו בלי לשבור את השאר.</span>
+                </div>
+              </div>
+              <div class="rule yes">
+                <span class="mark">✓</span>
+                <div>
+                  <strong>מעקב אחרי הצריכה</strong>
+                  <span>קפיצה חריגה בשימוש היא הסימן הראשון שמשהו לא בסדר.</span>
+                </div>
+              </div>
+            </div>
+
+            <h2>חושד שהמפתח דלף? כך פועלים</h2>
+
+            <div class="gstep">
+              <div class="n">1</div>
+              <h3>מוחקים מיד</h3>
+              <p>
+                מחק את המפתח ב-AI Studio, או דרך
+                <a
+                  href="https://console.cloud.google.com/apis/credentials"
+                  target="_blank"
+                  rel="noopener"
+                  >Google Cloud Console ← Credentials</a
+                >.
+              </p>
+            </div>
+
+            <div class="gstep">
+              <div class="n">2</div>
+              <h3>מורידים את התקרה זמנית</h3>
+              <p>
+                כאן זה שונה משאר הספקים: בגלל שהביטול עשוי לקחת מספר דקות להתפשט, כדאי
+                <strong>גם</strong> להוריד את תקרת ההוצאה לסכום מינימלי לזמן קצר. זה עוצר נזק
+                גם אם המפתח עוד «חי» לרגע.
+              </p>
+            </div>
+
+            <div class="gstep">
+              <div class="n">3</div>
+              <h3>יוצרים חדש ובודקים חיוב</h3>
+              <p>
+                צור מפתח חדש, הדבק ב-NF-Blaze, ובדוק בדוח החיוב של Google Cloud אם הייתה צריכה
+                חריגה.
+              </p>
+            </div>
+
+            <div class="callout info">
+              <svg class="ic" aria-hidden="true"><use href="#i-local" /></svg>
+              <div>
+                <h3 class="callout-h">איך NF-Blaze מתייחסת למפתח שלך</h3>
+                <p>
+                  המפתח נשמר מוצפן דרך מערכת ההפעלה, על המחשב שלך בלבד. הוא לא מוצג חזרה בממשק
+                  אחרי השמירה, לא נשלח לשרתים שלנו, ולא נכתב לקובצי הפרויקט.
+                </p>
+              </div>
+            </div>
+
+            <div class="guide-next">
+              <a href="chatgpt.html">
+                <svg class="ic" aria-hidden="true"><use href="#i-openai" /></svg>
+                <span>
+                  ChatGPT · OpenAI
+                  <small>תקרת הוצאה קשיחה — ההגנה הטובה ביותר</small>
+                </span>
+              </a>
+              <a href="claude.html">
+                <svg class="ic" aria-hidden="true"><use href="#i-claude" /></svg>
+                <span>
+                  Anthropic Claude
+                  <small>חזק בכתיבת קוד; תקרה מובנית לחשבון חדש</small>
+                </span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="wrap">
+        <div class="foot-grid">
+          <div>
+            <a class="brand" href="../">
+              <svg class="brand-mark" aria-hidden="true"><use href="#i-brand" /></svg>
+              NF-Blaze
+            </a>
+            <p>סביבת פיתוח עם AI בעברית, שרצה על המחשב שלך.</p>
+          </div>
+          <div class="foot-col">
+            <h3>מדריכים</h3>
+            <a href="chatgpt.html">ChatGPT · OpenAI</a>
+            <a href="gemini.html">Google Gemini</a>
+            <a href="claude.html">Anthropic Claude</a>
+          </div>
+          <div class="foot-col">
+            <h3>העמוד</h3>
+            <a href="../#capabilities">יכולות</a>
+            <a href="../#integrations">חיבורים</a>
+            <a href="../#security">אבטחה ופרטיות</a>
+          </div>
+          <div class="foot-col">
+            <h3>מידע משפטי</h3>
+            <a href="/privacy.html">מדיניות פרטיות</a>
+            <a href="/terms.html">תקנון ותנאי שימוש</a>
+            <a href="/accessibility.html">הצהרת נגישות</a>
+          </div>
+
+          <div class="foot-col">
+            <h3>יצירת קשר</h3>
+            <a href="mailto:Info@nf-blaze.dev">Info@nf-blaze.dev</a>
+            <a href="../#license">בקשת רישיון</a>
+          </div>
+        </div>
+        <div class="foot-bottom">
+          <span>© <span id="year">2026</span> NF-Blaze · כל הזכויות שמורות</span>
+          <span>nf-blaze.dev</span>
+        </div>
+      </div>
+    </footer>
+
+    <script src="../config.js"></script>
+    <script src="../app.js"></script>
+    <script src="../a11y.js"></script>
+  </body>
+</html>

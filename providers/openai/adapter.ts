@@ -13,13 +13,18 @@ function usageFromOpenAI(u?: {
   prompt_tokens?: number
   completion_tokens?: number
   total_tokens?: number
+  prompt_tokens_details?: { cached_tokens?: number } | null
 }): Usage {
   const inputTokens = u?.prompt_tokens ?? 0
   const outputTokens = u?.completion_tokens ?? 0
+  // OpenAI ממטמן אוטומטית קידומת יציבה מעל ~1024 טוקנים — אין סמנים,
+  // רק דיווח. הקידומת אצלנו יציבה (system → כלים → היסטוריה).
+  const cacheReadTokens = u?.prompt_tokens_details?.cached_tokens ?? 0
   return {
     inputTokens,
     outputTokens,
-    totalTokens: u?.total_tokens ?? inputTokens + outputTokens
+    totalTokens: u?.total_tokens ?? inputTokens + outputTokens,
+    ...(cacheReadTokens ? { cacheReadTokens } : {})
   }
 }
 

@@ -32,13 +32,17 @@ function usageFromGemini(meta?: {
   promptTokenCount?: number
   candidatesTokenCount?: number
   totalTokenCount?: number
+  cachedContentTokenCount?: number
 }): Usage {
   const inputTokens = meta?.promptTokenCount ?? 0
   const outputTokens = meta?.candidatesTokenCount ?? 0
+  // Gemini 2.5+ ממטמן משתמע לפי קידומת יציבה — כמו OpenAI, דיווח בלבד
+  const cacheReadTokens = meta?.cachedContentTokenCount ?? 0
   return {
     inputTokens,
     outputTokens,
-    totalTokens: meta?.totalTokenCount ?? inputTokens + outputTokens
+    totalTokens: meta?.totalTokenCount ?? inputTokens + outputTokens,
+    ...(cacheReadTokens ? { cacheReadTokens } : {})
   }
 }
 

@@ -15,5 +15,11 @@ templates/*/dist
 resources/runtime/*
 !resources/runtime/README.md
 
+# Chromium להרצת בדיקות דפדפן (~270MB) — מועתק מ-ms-playwright לפני build
+resources/playwright/
+
 # מפתח הרישוי הפרטי — לעולם לא בגיט ולא בהתקנה. גבה אותו בכספת!
 secrets/
+
+# קבצי עבודה של Supabase CLI — משתנים בכל פקודה ואין בהם ערך היסטורי
+license-portal/supabase/.temp/

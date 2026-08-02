@@ -2,12 +2,17 @@ import { useEffect, useState } from 'react'
 import type {
   GithubRepoInfo,
   ProjectIntegrations,
+  SupabaseProjectInfo,
   VercelDeployResult,
   VercelProjectInfo
 } from '@shared/types'
 import { DEFAULT_INTEGRATIONS, SECURITY_OVERRIDE_PHRASE } from '@shared/types'
+import OAuthConnectButton from './OAuthConnectButton'
+
 import {
   AlertTriangle,
+  ChevronDown,
+  ChevronLeft,
   Database,
   ExternalLink,
   Github,
@@ -15,12 +20,61 @@ import {
   Link2,
   Loader2,
   PlugZap,
+  RefreshCw,
   Rocket,
   ShieldAlert,
   Upload,
   Unplug,
   Wrench
 } from 'lucide-react'
+
+/**
+ * הזנה ידנית של טוקנים נשארת זמינה — אבל מקופלת. המסלול הרגיל הוא
+ * «התחבר עם…»; הידני נועד לחשבונות ארגוניים או לפתרון תקלות.
+ */
+function AdvancedSection({
+  title,
+  children
+}: {
+  title: string
+  children: React.ReactNode
+}) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div style={{ marginTop: 14, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
+      <button
+        className="btn btn-ghost"
+        onClick={() => setOpen((v) => !v)}
+        style={{ padding: '4px 8px', fontSize: '0.82rem', color: 'var(--text-muted)' }}
+      >
+        {open ? <ChevronDown size={14} /> : <ChevronLeft size={14} />}
+        {title}
+      </button>
+      {open && <div style={{ marginTop: 12 }}>{children}</div>}
+    </div>
+  )
+}
+
+/**
+ * קישור ישיר לעמוד שבו משיגים את פרטי החיבור של הפלטפורמה.
+ * בלי זה המשתמש נשאר עם «הזן טוקן» ובלי מושג מאיפה לוקחים אותו.
+ */
+function ConnectLink({ url, label }: { url: string; label: string }) {
+  return (
+    <a
+      href={url}
+      className="connect-link"
+      title={url}
+      onClick={(e) => {
+        e.preventDefault()
+        void window.nfblaze.openExternal(url)
+      }}
+    >
+      {label}
+      <ExternalLink size={12} />
+    </a>
+  )
+}
 
 interface Props {
   projectId: string
@@ -30,12 +84,7 @@ interface Props {
   onAgentFix?: (message: string) => void
 }
 
-export default function IntegrationsPanel({
-  projectId,
-  projectName,
-  onClose,
-  onAgentFix
-}: Props) {
+export default function IntegrationsPanel({ projectId, projectName, onClose, onAgentFix }: Props) {
   const [integ, setInteg] = useState<ProjectIntegrations>(DEFAULT_INTEGRATIONS)
   const [ghUser, setGhUser] = useState<string | null>(null)
   const [ghToken, setGhToken] = useState('')
@@ -45,6 +94,11 @@ export default function IntegrationsPanel({
   const [sbUrl, setSbUrl] = useState('')
   const [sbAnon, setSbAnon] = useState('')
   const [sbService, setSbService] = useState('')
+  const [sbToken, setSbToken] = useState('')
+  const [sbAccount, setSbAccount] = useState<{ connected: boolean; orgName?: string }>({
+    connected: false
+  })
+  const [sbProjects, setSbProjects] = useState<SupabaseProjectInfo[]>([])
   const [busy, setBusy] = useState('')
   const [msg, setMsg] = useState('')
   const [err, setErr] = useState('')
@@ -60,9 +114,7 @@ export default function IntegrationsPanel({
   const [overrideChecked, setOverrideChecked] = useState(false)
   const [overridePhrase, setOverridePhrase] = useState('')
 
-  function securityOverridePayload():
-    | { confirmed: boolean; phrase: string }
-    | undefined {
+  function securityOverridePayload(): { confirmed: boolean; phrase: string } | undefined {
     if (!overrideChecked) return undefined
     if (overridePhrase.trim() !== SECURITY_OVERRIDE_PHRASE) return undefined
     return { confirmed: true, phrase: SECURITY_OVERRIDE_PHRASE }
@@ -83,10 +135,11 @@ export default function IntegrationsPanel({
   }
 
   async function refresh(): Promise<void> {
-    const [i, status, vStatus] = await Promise.all([
+    const [i, status, vStatus, sbAcc] = await Promise.all([
       window.nfblaze.getIntegrations(projectId),
       window.nfblaze.githubStatus(),
-      window.nfblaze.vercelStatus()
+      window.nfblaze.vercelStatus(),
+      window.nfblaze.supabaseAccountStatus()
     ])
     setInteg(i)
     setGhUser(status.user?.login || null)
@@ -94,6 +147,8 @@ export default function IntegrationsPanel({
     setVercelUser(vStatus.user?.username || null)
     setHasPlatform(vStatus.hasPlatformToken)
     setHasUserToken(vStatus.hasUserToken)
+    setSbAccount(sbAcc)
+    if (!sbAcc.connected) setSbProjects([])
     if (i.vercel.projectName) setVercelProjectName(i.vercel.projectName)
   }
 
@@ -222,8 +277,8 @@ export default function IntegrationsPanel({
               <strong style={{ display: 'block', marginBottom: 6 }}>מסלול א׳ — פרסום מיידי</strong>
               <p className="desc" style={{ marginBottom: 8 }}>
                 בלי חשבון Vercel שלך. מקבלים כתובת חיה + קישור claim. Claim = העברת בעלות האתר
-                לחשבון שלך ב-Vercel (חינם). כדאי ללחוץ כדי לנהל דומיין, עדכונים והגדרות בעצמך —
-                אחרת האתר נשאר תחת החשבון המארח.
+                לחשבון שלך ב-Vercel (חינם). כדאי ללחוץ כדי לנהל דומיין, עדכונים והגדרות בעצמך — אחרת
+                האתר נשאר תחת החשבון המארח.
               </p>
               <button
                 className="btn btn-primary"
@@ -264,13 +319,34 @@ export default function IntegrationsPanel({
               }}
             >
               <strong style={{ display: 'block', marginBottom: 6 }}>מסלול ב׳ — החשבון שלך</strong>
-              <p className="desc" style={{ marginBottom: 8 }}>
-                {hasUserToken
-                  ? vercelUser
-                    ? `מחובר כ־@${vercelUser}`
-                    : 'טוקן מוגדר'
-                  : 'הזן Vercel token בהגדרות, ואז בחר פרויקט קיים או צור חדש.'}
-              </p>
+              {!hasUserToken ? (
+                <div style={{ marginBottom: 10 }}>
+                  <p className="desc" style={{ marginBottom: 10 }}>
+                    חבר את חשבון Vercel שלך, ואז אפשר יהיה לפרסם לפרויקט חדש או קיים.
+                  </p>
+                  <OAuthConnectButton
+                    provider="vercel"
+                    disabled={!!busy}
+                    onConnected={(res) => {
+                      setMsg(res.message)
+                      void refresh()
+                    }}
+                    onError={setErr}
+                  />
+                </div>
+              ) : (
+                <>
+                  <p className="desc" style={{ marginBottom: 8 }}>
+                    {vercelUser ? `מחובר כ־@${vercelUser}` : 'החשבון מחובר'}
+                  </p>
+                  <div className="key-status" style={{ marginBottom: 8 }}>
+                    <ConnectLink
+                      url="https://vercel.com/dashboard/integrations"
+                      label="נהל הרשאות ב-Vercel"
+                    />
+                  </div>
+                </>
+              )}
               <div className="field">
                 <label>שם פרויקט ב-Vercel</label>
                 <input
@@ -444,8 +520,8 @@ export default function IntegrationsPanel({
                   עקיפה ידנית (מסוכן)
                 </strong>
                 <p className="desc" style={{ marginTop: 6 }}>
-                  עקיפה תפרסם למרות החסימה. רק אם אתה מבין את הסיכון ומקבל אחריות.
-                  יש לסמן ולאשר במפורש את המשפט למטה — אחרת הפרסום יישאר חסום.
+                  עקיפה תפרסם למרות החסימה. רק אם אתה מבין את הסיכון ומקבל אחריות. יש לסמן ולאשר
+                  במפורש את המשפט למטה — אחרת הפרסום יישאר חסום.
                 </p>
                 <label
                   style={{
@@ -568,7 +644,8 @@ export default function IntegrationsPanel({
             GitHub
           </h3>
           <p className="desc">
-            השתמש ב־Fine-grained PAT עם הרשאות Contents + Metadata לריפו. המפתח נשמר ב־safeStorage.
+            חיבור בלחיצה אחת — NF-Blaze תיצור ריפו ותדחוף אליו קוד בשמך. ההרשאה ניתנת בדף
+            האישור של GitHub וניתנת לביטול משם בכל רגע.
           </p>
 
           <div className="key-status">
@@ -579,33 +656,66 @@ export default function IntegrationsPanel({
                 {integ.github.repoFullName}
               </span>
             )}
+            {ghUser && (
+              <ConnectLink
+                url="https://github.com/settings/applications"
+                label="נהל הרשאות ב-GitHub"
+              />
+            )}
           </div>
 
           {!ghUser ? (
-            <div className="folder-row">
-              <input
-                className="input"
-                type="password"
-                placeholder="github_pat_… או ghp_…"
-                value={ghToken}
-                onChange={(e) => setGhToken(e.target.value)}
-                style={{ direction: 'ltr', textAlign: 'left' }}
+            <>
+              <OAuthConnectButton
+                provider="github"
+                disabled={!!busy}
+                onConnected={async (res) => {
+                  setMsg(res.message)
+                  await refresh()
+                  // הריפוזיטוריז נטענים מיד — החיבור נעשה כדי לבחור ריפו,
+                  // אין סיבה לדרוש קליק נוסף בשביל הרשימה
+                  try {
+                    setRepos(await window.nfblaze.listGithubRepos())
+                  } catch (e) {
+                    setErr(e instanceof Error ? e.message : String(e))
+                  }
+                }}
+                onError={setErr}
               />
-              <button
-                className="btn btn-primary"
-                disabled={!!busy || !ghToken.trim()}
-                onClick={() =>
-                  run('github-token', async () => {
-                    const res = await window.nfblaze.setGithubToken(ghToken.trim())
-                    setGhToken('')
-                    setMsg(`GitHub חובר: @${res.user.login}`)
-                  })
-                }
-              >
-                <PlugZap size={16} />
-                חבר
-              </button>
-            </div>
+              <AdvancedSection title="חיבור ידני עם טוקן (מתקדם)">
+                <p className="desc" style={{ marginBottom: 8 }}>
+                  לחשבונות שבהם אישור אפליקציות חסום. נדרש Fine-grained PAT עם הרשאות
+                  Contents + Metadata. נשמר מוצפן ב-safeStorage.
+                </p>
+                <div className="key-status" style={{ marginBottom: 8 }}>
+                  <ConnectLink url="https://github.com/settings/tokens?type=beta" label="צור token" />
+                </div>
+                <div className="folder-row">
+                  <input
+                    className="input"
+                    type="password"
+                    placeholder="github_pat_… או ghp_…"
+                    value={ghToken}
+                    onChange={(e) => setGhToken(e.target.value)}
+                    style={{ direction: 'ltr', textAlign: 'left' }}
+                  />
+                  <button
+                    className="btn btn-primary"
+                    disabled={!!busy || !ghToken.trim()}
+                    onClick={() =>
+                      run('github-token', async () => {
+                        const res = await window.nfblaze.setGithubToken(ghToken.trim())
+                        setGhToken('')
+                        setMsg(`GitHub חובר: @${res.user.login}`)
+                      })
+                    }
+                  >
+                    <PlugZap size={16} />
+                    חבר
+                  </button>
+                </div>
+              </AdvancedSection>
+            </>
           ) : (
             <div className="form-grid">
               {!integ.github.connected && (
@@ -619,7 +729,9 @@ export default function IntegrationsPanel({
                       style={{ direction: 'ltr', textAlign: 'left' }}
                     />
                   </div>
-                  <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '0.88rem' }}>
+                  <label
+                    style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '0.88rem' }}
+                  >
                     <input
                       type="checkbox"
                       checked={isPrivate}
@@ -730,26 +842,15 @@ export default function IntegrationsPanel({
                 onClick={() =>
                   run('clear-token', async () => {
                     await window.nfblaze.clearGithubToken()
-                    setMsg('טוקן GitHub נמחק מהמחשב')
+                    setMsg('חשבון GitHub נותק מהמחשב')
                   })
                 }
               >
-                מחק טוקן מהמחשב
+                <Unplug size={16} />
+                נתק חשבון GitHub
               </button>
             </div>
           )}
-          <p className="desc" style={{ marginTop: 10 }}>
-            <a
-              href="https://github.com/settings/tokens?type=beta"
-              onClick={(e) => {
-                e.preventDefault()
-                window.open('https://github.com/settings/tokens?type=beta', '_blank')
-              }}
-              style={{ color: 'var(--accent-hot)' }}
-            >
-              צור Fine-grained token ב-GitHub
-            </a>
-          </p>
         </div>
 
         {/* Supabase */}
@@ -759,17 +860,128 @@ export default function IntegrationsPanel({
             Supabase
           </h3>
           <p className="desc">
-            הזן Project URL + anon/publishable key. service_role אופציונלי ונשמר רק ב-.env.local
-            (לא לקליינט).
+            התחבר פעם אחת ובחר פרויקט — הכתובת והמפתחות נמשכים אוטומטית, וגם הסוכן מקבל
+            הרשאה להריץ SQL (יצירת טבלאות ו-RLS) בלי שתעתיק כלום.
           </p>
 
           <div className="key-status">
             <span className={`dot ${integ.supabase.connected ? 'on' : ''}`} />
-            {integ.supabase.connected
-              ? `מחובר · ${integ.supabase.projectUrl}`
-              : 'לא מחובר'}
+            {integ.supabase.connected ? `מחובר · ${integ.supabase.projectUrl}` : 'לא מחובר'}
+            {integ.supabase.hasAgentDbAccess && (
+              <span className="badge" style={{ marginInlineStart: 8 }}>
+                הסוכן מריץ SQL
+              </span>
+            )}
+            {integ.supabase.projectUrl && (
+              <ConnectLink url="https://supabase.com/dashboard/projects" label="פתח ב-Supabase" />
+            )}
           </div>
 
+          {!sbAccount.connected ? (
+            <OAuthConnectButton
+              provider="supabase"
+              disabled={!!busy}
+              onConnected={async (res) => {
+                setMsg(res.message)
+                await refresh()
+                // אותה לוגיקה כמו ב-GitHub: מתחברים כדי לבחור פרויקט
+                try {
+                  const list = await window.nfblaze.listSupabaseProjects()
+                  setSbProjects(list)
+                  if (!list.length) setMsg('אין פרויקטים בחשבון — צור אחד ב-Supabase ורענן.')
+                } catch (e) {
+                  setErr(e instanceof Error ? e.message : String(e))
+                }
+              }}
+              onError={setErr}
+            />
+          ) : (
+            <div>
+              <div className="key-status" style={{ marginBottom: 10 }}>
+                <span className="dot on" />
+                חשבון מחובר{sbAccount.orgName ? ` · ${sbAccount.orgName}` : ''}
+              </div>
+
+              <div className="folder-row" style={{ marginBottom: 10 }}>
+                <button
+                  className="btn btn-primary"
+                  disabled={!!busy}
+                  onClick={() =>
+                    run('sb-list', async () => {
+                      const list = await window.nfblaze.listSupabaseProjects()
+                      setSbProjects(list)
+                      if (!list.length) setMsg('אין פרויקטים בחשבון — צור אחד ב-Supabase ורענן.')
+                    })
+                  }
+                >
+                  <RefreshCw size={16} />
+                  {sbProjects.length ? 'רענן רשימה' : 'בחר פרויקט'}
+                </button>
+                <button
+                  className="btn btn-ghost"
+                  disabled={!!busy}
+                  onClick={() =>
+                    run('sb-account-disconnect', async () => {
+                      await window.nfblaze.disconnectSupabaseAccount()
+                      setSbProjects([])
+                      setMsg('חשבון Supabase נותק מהמחשב')
+                    })
+                  }
+                >
+                  <Unplug size={16} />
+                  נתק חשבון
+                </button>
+              </div>
+
+              {sbProjects.length > 0 && (
+                <select
+                  className="select"
+                  defaultValue=""
+                  onChange={(e) => {
+                    const ref = e.target.value
+                    if (!ref) return
+                    run('sb-link', async () => {
+                      const res = await window.nfblaze.linkSupabaseProject({ projectId, ref })
+                      setSbProjects([])
+                      setMsg(res.message)
+                    })
+                  }}
+                >
+                  <option value="" disabled>
+                    בחר פרויקט Supabase…
+                  </option>
+                  {sbProjects.map((p) => (
+                    <option key={p.ref} value={p.ref}>
+                      {p.name} ({p.ref})
+                    </option>
+                  ))}
+                </select>
+              )}
+
+              {integ.supabase.connected && (
+                <button
+                  className="btn btn-danger"
+                  style={{ marginTop: 10 }}
+                  disabled={!!busy}
+                  onClick={() =>
+                    run('disconnect-sb', async () => {
+                      await window.nfblaze.disconnectSupabase(projectId)
+                      setMsg('Supabase נותק מהפרויקט')
+                    })
+                  }
+                >
+                  <Unplug size={16} />
+                  נתק את הפרויקט
+                </button>
+              )}
+            </div>
+          )}
+
+          <AdvancedSection title="חיבור ידני עם מפתחות (מתקדם)">
+          <p className="desc" style={{ marginBottom: 10 }}>
+            הזן Project URL + anon/publishable key. service_role אופציונלי ונשמר רק ב-.env.local
+            (לא לקליינט).
+          </p>
           <div className="form-grid">
             <div className="field">
               <label>Project URL</label>
@@ -803,6 +1015,40 @@ export default function IntegrationsPanel({
                 style={{ direction: 'ltr', textAlign: 'left' }}
               />
             </div>
+            <div className="field">
+              <label>
+                Personal Access Token — לגישת הסוכן להריץ SQL (אופציונלי){' '}
+                {integ.supabase.hasAgentDbAccess ? '· ✓ פעיל' : ''}
+              </label>
+              <input
+                className="input"
+                type="password"
+                placeholder="sbp_… (מתחיל ב-sbp_)"
+                value={sbToken}
+                onChange={(e) => setSbToken(e.target.value)}
+                style={{ direction: 'ltr', textAlign: 'left' }}
+              />
+              <p className="desc" style={{ marginTop: 4, fontSize: '0.75rem', lineHeight: 1.6 }}>
+                ⚠️ <strong>זה לא מפתח ה-API של הפרויקט</strong> (anon / service_role / publishable /
+                secret). זהו טוקן ברמת <strong>החשבון</strong>, שמתחיל ב-<code>sbp_</code>.
+                <br />
+                איפה יוצרים: בפינה העליונה של Supabase → <strong>Account</strong> (אווטאר) →{' '}
+                <strong>Access Tokens</strong> → «Generate new token».{' '}
+                <a
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    void window.nfblaze.openExternal('https://supabase.com/dashboard/account/tokens')
+                  }}
+                  style={{ color: 'var(--accent)' }}
+                >
+                  פתח את דף הטוקנים
+                </a>
+                <br />
+                עם הטוקן הסוכן יריץ SQL ישירות (יצירת טבלאות, שינוי נתונים); בלעדיו רק יכתוב לך SQL
+                להרצה ידנית. נשמר מוצפן במחשב בלבד.
+              </p>
+            </div>
             <div className="folder-row">
               <button
                 className="btn"
@@ -827,11 +1073,13 @@ export default function IntegrationsPanel({
                       projectUrl: sbUrl.trim(),
                       anonKey: sbAnon.trim(),
                       serviceRoleKey: sbService.trim() || undefined,
+                      accessToken: sbToken.trim() || undefined,
                       writeEnvFiles: true,
                       scaffoldClient: true
                     })
                     setSbAnon('')
                     setSbService('')
+                    setSbToken('')
                     setMsg(res.message)
                   })
                 }
@@ -856,10 +1104,13 @@ export default function IntegrationsPanel({
               )}
             </div>
           </div>
+          </AdvancedSection>
         </div>
 
         {busy && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-muted)' }}>
+          <div
+            style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-muted)' }}
+          >
             <Loader2 size={16} className="spin" />
             מבצע… {busy}
           </div>

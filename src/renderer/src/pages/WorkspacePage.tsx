@@ -5,6 +5,7 @@ import FileTree from '../components/FileTree'
 import MarkdownMessage from '../components/MarkdownMessage'
 import CodeEditor from '../components/CodeEditor'
 import {
+  ArrowUpRight,
   Code2,
   Eraser,
   Eye,
@@ -124,9 +125,13 @@ export default function WorkspacePage({ project, onProjectUpdate, onOpenOverview
   const [error, setError] = useState('')
   const [liveStatus, setLiveStatus] = useState('')
   const [liveText, setLiveText] = useState('')
-  // טוקנים נערמים ב-ref ונשטפים כל ~80ms — עדכון state לכל טוקן גרם לתקיעות UI
+  // טוקנים נערמים ב-ref ונחשפים בהדרגה (מכונת כתיבה) — שפיכת כל הצבר במכה
+  // אחת נראתה רובוטית, ועדכון state לכל טוקן בנפרד גרם לתקיעות UI
   const liveTextRef = useRef('')
-  const liveFlushTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const liveShownRef = useRef(0)
+  const liveTickTimer = useRef<ReturnType<typeof setInterval> | null>(null)
+  // ההודעה הסופית כבר נטענה לרשימה — הבועה החיה מוסתרת באותו רנדר (בלי פריים כפול)
+  const [liveReplaced, setLiveReplaced] = useState(false)
   const [liveFiles, setLiveFiles] = useState<string[]>([])
   const [canUndo, setCanUndo] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
@@ -199,6 +204,13 @@ export default function WorkspacePage({ project, onProjectUpdate, onOpenOverview
   /** Vite / package.json scripts.dev — live server, never static nfblaze HTML */
   const [isDevProject, setIsDevProject] = useState(false)
   const livePreviewUrlRef = useRef<string | null>(null)
+  /**
+   * הכתובת שאפשר לפתוח בדפדפן חיצוני. תצוגה סטטית רצה על סכימת `nfblaze://`
+   * הפנימית, ש-`openExternal` דוחה (הוא מאשר http/https בלבד) — ולכן היא
+   * מסוננת כאן ולא בנקודת הלחיצה.
+   */
+  const externalPreviewUrl =
+    previewUrl && /^https?:\/\//i.test(previewUrl) ? previewUrl : null
   const [projectCheck, setProjectCheck] = useState<{
     status: 'idle' | 'checking' | 'passed' | 'failed' | 'timeout' | 'cancelled'
     kind?: 'tsc' | 'build'
@@ -279,6 +291,31 @@ export default function WorkspacePage({ project, onProjectUpdate, onOpenOverview
     setMessages(chat.messages)
   }, [project.id])
 
+  const stopLiveTicker = useCallback(() => {
+    if (liveTickTimer.current) {
+      clearInterval(liveTickTimer.current)
+      liveTickTimer.current = null
+    }
+  }, [])
+
+  const ensureLiveTicker = useCallback(() => {
+    if (liveTickTimer.current) return
+    liveTickTimer.current = setInterval(() => {
+      const target = liveTextRef.current
+      if (liveShownRef.current >= target.length) {
+        stopLiveTicker()
+        return
+      }
+      // מדביק את הפיגור בהדרגה — מהיר כשמאחור, עדין כשקרוב
+      const backlog = target.length - liveShownRef.current
+      const step = Math.max(2, Math.ceil(backlog / 10))
+      liveShownRef.current = Math.min(target.length, liveShownRef.current + step)
+      setLiveText(target.slice(0, liveShownRef.current))
+    }, 50)
+  }, [stopLiveTicker])
+
+  useEffect(() => stopLiveTicker, [stopLiveTicker])
+
   const refreshVercelMeta = useCallback(async () => {
     try {
       const i = await window.nfblaze.getIntegrations(project.id)
@@ -356,7 +393,9 @@ export default function WorkspacePage({ project, onProjectUpdate, onOpenOverview
   }
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    // בזמן סטרימינג הגלילה מיידית — גלילה «חלקה» שמופעלת מחדש כל ~80ms
+    // אף פעם לא משיגה את הטקסט ונראית כקפיצות
+    bottomRef.current?.scrollIntoView({ behavior: sending ? 'auto' : 'smooth' })
   }, [messages, sending, liveText, liveStatus, liveFiles])
 
   useEffect(() => {
@@ -1010,8 +1049,11 @@ export default function WorkspacePage({ project, onProjectUpdate, onOpenOverview
     setError('')
     if (!overrideText) setInput('')
     setLiveStatus('מתחיל…')
+    stopLiveTicker()
     liveTextRef.current = ''
+    liveShownRef.current = 0
     setLiveText('')
+    setLiveReplaced(false)
     setLiveFiles([])
     setPendingBuildPrompt(null)
     setModeBlockedWrites(false)
@@ -1035,14 +1077,11 @@ export default function WorkspacePage({ project, onProjectUpdate, onOpenOverview
       if (ev.type === 'status') {
         setLiveStatus(ev.message)
       } else if (ev.type === 'token') {
-        if (ev.replace) liveTextRef.current = ev.text
-        else liveTextRef.current += ev.text
-        if (!liveFlushTimer.current) {
-          liveFlushTimer.current = setTimeout(() => {
-            liveFlushTimer.current = null
-            setLiveText(liveTextRef.current)
-          }, 80)
-        }
+        if (ev.replace) {
+          liveTextRef.current = ev.text
+          liveShownRef.current = Math.min(liveShownRef.current, ev.text.length)
+        } else liveTextRef.current += ev.text
+        ensureLiveTicker()
         setLiveStatus((s) => (s.startsWith('כותב') || s.startsWith('מריץ') ? s : 'כותב תשובה…'))
       } else if (ev.type === 'intent') {
         setLastResolvedMode(ev.mode)
@@ -1164,13 +1203,22 @@ export default function WorkspacePage({ project, onProjectUpdate, onOpenOverview
         /* ignore */
       }
       setDirty(false)
-      await loadChat()
+      // החלפה חלקה: ההודעה הסופית נכנסת והבועה החיה מוסתרת באותו רנדר —
+      // קודם הבועה נשארה על המסך לאורך כל הרענונים שאחרי הסבב וגרמה לקפיצה
+      const chat = await window.nfblaze.getChat(project.id)
+      setMessages(chat.messages)
+      setLiveReplaced(true)
       await refreshTree()
       await refreshUndo()
       await refreshPlan()
-      if (result.workMode === 'ASK' || result.workMode === 'PLAN') {
+      // «בצע את זה» רק כשיש באמת מה לבצע: תוכנית (PLAN) או שהסוכן ניסה לכתוב
+      // ונחסם על ידי המצב. שאלה רגילה («מה אתה חושב על הפרויקט?») לא מציעה ביצוע.
+      const actionable =
+        result.workMode === 'PLAN' ||
+        (result.workMode === 'ASK' && Boolean(result.modeBlockedWrites))
+      if (actionable) {
         setPendingBuildPrompt(text)
-        setLastResolvedMode(result.workMode)
+        setLastResolvedMode(result.workMode ?? null)
         setModeBlockedWrites(Boolean(result.modeBlockedWrites))
       } else {
         setPendingBuildPrompt(null)
@@ -1212,13 +1260,12 @@ export default function WorkspacePage({ project, onProjectUpdate, onOpenOverview
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
       await loadChat()
+      setLiveReplaced(true)
     } finally {
       unsubscribe()
-      if (liveFlushTimer.current) {
-        clearTimeout(liveFlushTimer.current)
-        liveFlushTimer.current = null
-      }
+      stopLiveTicker()
       liveTextRef.current = ''
+      liveShownRef.current = 0
       setSending(false)
       setLiveStatus('')
       setLiveText('')
@@ -1374,7 +1421,7 @@ export default function WorkspacePage({ project, onProjectUpdate, onOpenOverview
               </button>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 4 }}>
+          <div className="panel-head-actions">
             {vercelUrl && (
               <button
                 className="btn btn-ghost"
@@ -1595,6 +1642,32 @@ export default function WorkspacePage({ project, onProjectUpdate, onOpenOverview
                   })}
                 </div>
               )}
+              {m.regressions && m.regressions.length > 0 && (
+                <div className="regression-card">
+                  <div className="regression-title">
+                    <TriangleAlert size={14} />
+                    אחרי השינוי הזה נשבר משהו שעבד קודם
+                  </div>
+                  <ul className="regression-list">
+                    {m.regressions.map((r, i) => (
+                      <li key={`${r.kind}-${r.route ?? i}`}>
+                        {r.kind === 'route' ? (
+                          <>
+                            <span dir="ltr">{r.route}</span> — {r.detail}
+                          </>
+                        ) : (
+                          <>
+                            שגיאת קונסול חדשה: <span dir="ltr">{r.detail}</span>
+                          </>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="regression-hint">
+                    אפשר לבקש תיקון, או «בטל שינויים» כדי לחזור למצב הקודם.
+                  </div>
+                </div>
+              )}
               {m.snapshotId && (
                 <div
                   style={{
@@ -1640,8 +1713,15 @@ export default function WorkspacePage({ project, onProjectUpdate, onOpenOverview
                     </>
                   )}
                   {m.changesApproved === true && (
-                    <span style={{ fontSize: '0.76rem', color: 'var(--success, #4caf50)' }}>
-                      ✓ השינויים אושרו
+                    <span
+                      style={{ fontSize: '0.76rem', color: 'var(--success, #4caf50)' }}
+                      title={
+                        m.autoApproved
+                          ? 'שינוי קטן ונקי, אחרי רצף אישורים — אפשר לבטל מהיסטוריית הגרסאות'
+                          : undefined
+                      }
+                    >
+                      ✓ {m.autoApproved ? 'אושר אוטומטית' : 'השינויים אושרו'}
                     </span>
                   )}
                   {m.changesApproved === false && (
@@ -1654,7 +1734,7 @@ export default function WorkspacePage({ project, onProjectUpdate, onOpenOverview
             </div>
             )
           })}
-          {sending && (
+          {sending && !liveReplaced && (
             <div className="msg msg-assistant msg-live">
               {lastResolvedMode && (
                 <div className="msg-mode-badge">
@@ -1980,6 +2060,41 @@ export default function WorkspacePage({ project, onProjectUpdate, onOpenOverview
               <span className="dirty-dot" title="לא נשמר">
                 ●
               </span>
+            )}
+            {/*
+             * פתיחת התצוגה בדפדפן החיצוני — נשען על openExternal, שמאשר
+             * http/https בלבד. תצוגה סטטית (nfblaze://) לא נפתחת שם, ולכן
+             * הכפתור מוסתר במצב הזה במקום להיכשל בשקט.
+             */}
+            {mode === 'preview' && (
+              <button
+                className="address-open"
+                disabled={livePreviewBusy}
+                title={
+                  externalPreviewUrl
+                    ? 'פתח את התצוגה בדפדפן'
+                    : 'הפעל את התצוגה ופתח אותה בדפדפן'
+                }
+                aria-label="פתח את התצוגה בדפדפן"
+                onClick={() =>
+                  void (async () => {
+                    let url = externalPreviewUrl
+                    if (!url) {
+                      // התצוגה עוד לא רצה — מרימים אותה ואז פותחים.
+                      // ה-ref מתעדכן סינכרונית בתוך ensureVitePreview, בניגוד
+                      // ל-state שעדיין לא התרנדר בסגירה הזו.
+                      const ok = await ensureVitePreview()
+                      if (!ok) return
+                      const fresh = livePreviewUrlRef.current
+                      if (!fresh || !/^https?:\/\//i.test(fresh)) return
+                      url = fresh
+                    }
+                    await window.nfblaze.openExternal(url)
+                  })()
+                }
+              >
+                <ArrowUpRight size={14} />
+              </button>
             )}
           </div>
 
